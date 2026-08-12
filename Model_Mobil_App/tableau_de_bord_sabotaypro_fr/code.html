@@ -1,0 +1,385 @@
+<!DOCTYPE html><html class="light" lang="fr" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Sabotaypro Terminal - Tableau de bord</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "surface-container-low": "#f2f4f6",
+                    "outline-variant": "#c5c6cd",
+                    "surface-bright": "#f7f9fb",
+                    "surface-container-high": "#e6e8ea",
+                    "inverse-primary": "#b9c7e4",
+                    "secondary-container": "#6cf8bb",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#76849f",
+                    "tertiary-container": "#0b1c30",
+                    "on-surface": "#191c1e",
+                    "on-surface-variant": "#44474d",
+                    "primary-container": "#0d1c32",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#2d3133",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#0d1c32",
+                    "surface-tint": "#515f78",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed-dim": "#b7c8e1",
+                    "surface-dim": "#d8dadc",
+                    "secondary-fixed-dim": "#4edea3",
+                    "primary-fixed": "#d6e3ff",
+                    "on-tertiary-fixed": "#0b1c30",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#000000",
+                    "surface": "#f7f9fb",
+                    "on-tertiary-fixed-variant": "#38485d",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-secondary-container": "#00714d",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed-dim": "#b9c7e4",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-primary-fixed-variant": "#39475f",
+                    "on-background": "#191c1e",
+                    "background": "#f7f9fb",
+                    "inverse-on-surface": "#eff1f3",
+                    "error": "#ba1a1a",
+                    "on-tertiary-container": "#75859d",
+                    "surface-container": "#eceef0",
+                    "primary": "#000000",
+                    "outline": "#75777e",
+                    "secondary": "#006c49",
+                    "error-container": "#ffdad6",
+                    "surface-variant": "#e0e3e5",
+                    "tertiary-fixed": "#d3e4fe",
+                    "on-secondary-fixed": "#002113"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-margin": "20px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "md": "16px",
+                    "xl": "32px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "sm": "12px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "mono-data": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "mono-data": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .elevation-1 {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        }
+        
+        #nav-drawer {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #drawer-overlay {
+            transition: opacity 0.3s ease;
+        }
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md overflow-x-hidden" style="overflow: hidden;">
+<!-- Top Navigation Bar -->
+<header class="bg-surface dark:bg-inverse-surface w-full top-0 sticky flex justify-between items-center px-container-margin py-base z-40 border-b border-outline-variant dark:border-on-surface-variant">
+<div class="flex items-center gap-md">
+<button class="text-primary dark:text-primary-fixed hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors p-xs rounded-full active:scale-95 transition-transform" onclick="toggleDrawer()">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed font-bold">Sabotaypro</h1>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:bg-surface-container-high rounded-full p-xs transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden elevation-1 border border-outline-variant">
+<img alt="Portrait professionnel du gestionnaire" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD24WX20lUgCmVq_nCMmmrOdjXhlO1tz8t70HDLRjnLqHWex_89XTrz8VmWq6_hu5nKB_IwwEUFmsEWIgS7F_TmSMGXEGMOH6mkX3yDZziVvcqZRqQjU3NIXQUdrWKfDw_pUUNE8aQewT0-YN_b2TVYWfmX0B6dxRMwSRNkU_7qmY-c4VMbgtbi7ZGrFVo8btchZPKwPLclisxDzbVFCzPjBuxMVIQmW1TNbxtWAX_sA2lAUuMUF_zK">
+</div>
+</div>
+</header>
+<!-- Navigation Drawer Overlay -->
+<div class="fixed inset-0 bg-black/40 z-50 opacity-0 pointer-events-none" id="drawer-overlay" onclick="toggleDrawer()" style="opacity: 1; pointer-events: auto;"></div>
+<!-- Navigation Drawer -->
+<nav class="h-full w-72 fixed left-0 top-0 z-50 bg-surface-container-lowest dark:bg-surface-container-low shadow-md dark:shadow-none -translate-x-full flex flex-col py-lg" id="nav-drawer" style="transform: translateX(0px);">
+<div class="px-md mb-xl flex flex-col gap-xs">
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-full overflow-hidden elevation-1 border border-outline-variant">
+<img alt="Profil du gestionnaire" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXRWCH7sAgelOMEIt4tphYa27eWGvo2AxdEpc4cw7Tkh8F_Mhhc808v0Ar8O6ntoj4rAid9ALYf5W2hI3Lx0pckHUlMNUek-mbBOoJhJ6RvQ74L8U3v75hk65aj0J_c6FsNivuTlq585r7BLZOMK8acyZyIBUyQvJBJMQdbcv8sSw3GJZbLtG0JYUPcYmyPW17ropY2pDV8qvda2FarrZevR_8oZ0nESVP2rB-8MjbiAwYhtkqLpXB">
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed font-bold leading-tight">Sabotaypro</h2>
+<p class="text-label-md font-label-md text-on-surface-variant">Terminal 01</p>
+</div>
+</div>
+<div class="flex items-center justify-between px-xs py-xs bg-surface-container rounded-lg">
+<div>
+<p class="text-[12px] font-bold text-primary">Gestionnaire d'opérations</p>
+<p class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Statut Actif
+                    </p>
+</div>
+<span class="material-symbols-outlined text-primary" data-icon="verified">verified</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs flex-1">
+
+<a class="text-on-surface-variant dark:text-on-surface-variant mx-md my-xs px-md py-sm flex items-center gap-md hover:bg-surface-container-high dark:hover:bg-surface-container-highest rounded-full transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-md text-label-md">Clients</span>
+</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant mx-md my-xs px-md py-sm flex items-center gap-md hover:bg-surface-container-high dark:hover:bg-surface-container-highest rounded-full transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-label-md text-label-md">Employés</span>
+</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant mx-md my-xs px-md py-sm flex items-center gap-md hover:bg-surface-container-high dark:hover:bg-surface-container-highest rounded-full transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Rapports</span>
+</a>
+<div class="mt-auto">
+<a class="text-on-surface-variant dark:text-on-surface-variant mx-md my-xs px-md py-sm flex items-center gap-md hover:bg-surface-container-high dark:hover:bg-surface-container-highest rounded-full transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Paramètres</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="px-container-margin py-lg pb-32 max-w-7xl mx-auto">
+<!-- Welcome Header -->
+<section class="mb-xl">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary mb-xs">Tableau de bord</h2>
+<p class="text-on-surface-variant font-body-md">Aperçu des performances en temps réel.</p>
+</section>
+<!-- KPI Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+<!-- Main Total Card -->
+<div class="md:col-span-2 bg-surface-container-lowest elevation-1 rounded-xl p-lg border-l-4 border-secondary relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-label-md font-label-md text-on-surface-variant mb-xs">Total Collecté (Ce mois)</p>
+<h3 class="font-display-lg text-display-lg text-primary mb-md">$142.850,00</h3>
+<div class="flex items-center gap-sm">
+<span class="flex items-center text-secondary font-label-sm px-sm py-xs bg-secondary-container/20 rounded-full">
+<span class="material-symbols-outlined text-sm mr-1" data-icon="trending_up">trending_up</span>
+                            +12,5%
+                        </span>
+<span class="text-on-surface-variant text-label-sm">vs mois dernier</span>
+</div>
+</div>
+<div class="absolute bottom-0 right-0 w-48 h-32 opacity-10">
+<span class="material-symbols-outlined text-[160px]" data-icon="payments">payments</span>
+</div>
+</div>
+<!-- Transaction Count -->
+<div class="bg-surface-container-lowest elevation-1 rounded-xl p-lg flex flex-col justify-between">
+<div>
+<p class="text-label-md font-label-md text-on-surface-variant mb-xs">Transactions réussies</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">1.204</h3>
+</div>
+<div class="flex -space-x-2 mt-md">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-200"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-300"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-400"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-primary-fixed flex items-center justify-center text-[10px] font-bold">+1k</div>
+</div>
+</div>
+</section>
+<!-- Performance Chart Mockup -->
+<section class="bg-surface-container-lowest elevation-1 rounded-xl p-lg mb-xl">
+<div class="flex justify-between items-center mb-lg">
+<h4 class="font-headline-md text-headline-md text-primary">Vélocité de collecte</h4>
+<select class="bg-surface-container border-none text-label-sm font-label-sm rounded-lg px-sm py-xs outline-none focus:ring-2 focus:ring-primary">
+<option>7 derniers jours</option>
+<option>30 derniers jours</option>
+</select>
+</div>
+<div class="w-full h-48 flex items-end justify-between gap-sm pt-md">
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-1/4 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$2.1k</span>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-2/4 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$4.5k</span>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-3/4 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$6.2k</span>
+</div>
+<div class="flex-1 bg-secondary rounded-t-sm h-5/6 relative group">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary">$8.4k</span>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-4/6 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$5.1k</span>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-2/6 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$3.8k</span>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm h-1/2 hover:bg-secondary transition-colors cursor-pointer group relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100">$4.9k</span>
+</div>
+</div>
+<div class="flex justify-between mt-sm">
+<span class="text-[10px] text-on-surface-variant font-bold">LUN</span>
+<span class="text-[10px] text-on-surface-variant font-bold">MAR</span>
+<span class="text-[10px] text-on-surface-variant font-bold">MER</span>
+<span class="text-[10px] text-on-surface-variant font-bold">JEU</span>
+<span class="text-[10px] text-on-surface-variant font-bold">VEN</span>
+<span class="text-[10px] text-on-surface-variant font-bold">SAM</span>
+<span class="text-[10px] text-on-surface-variant font-bold">DIM</span>
+</div>
+</section>
+<!-- Transactions List -->
+<section>
+<div class="flex justify-between items-center mb-md">
+<h4 class="font-headline-md text-headline-md text-primary">Transactions récentes</h4>
+<button class="text-primary font-label-md hover:underline decoration-2 underline-offset-4">Voir tout</button>
+</div>
+<div class="bg-surface-container-lowest elevation-1 rounded-xl divide-y divide-surface-container-high overflow-hidden">
+<!-- Transaction Item -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container/30 transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add_card">add_card</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Acme Corp Terminal</p>
+<p class="text-[12px] text-on-surface-variant">Aujourd'hui, 10:45</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-primary font-bold">+$1.250,00</p>
+<span class="text-[10px] px-sm py-xs bg-emerald-50 text-emerald-700 rounded-full font-bold uppercase tracking-wider">PAYÉ</span>
+</div>
+</div>
+<!-- Transaction Item -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container/30 transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Global Logistics Inc.</p>
+<p class="text-[12px] text-on-surface-variant">Hier, 16:20</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-primary font-bold">+$850,45</p>
+<span class="text-[10px] px-sm py-xs bg-slate-100 text-slate-600 rounded-full font-bold uppercase tracking-wider">EN COURS</span>
+</div>
+</div>
+<!-- Transaction Item -->
+<div class="p-md flex items-center justify-between hover:bg-surface-container/30 transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Smith &amp; Sons Ltd.</p>
+<p class="text-[12px] text-on-surface-variant">Hier, 13:15</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-primary font-bold">+$2.400,00</p>
+<span class="text-[10px] px-sm py-xs bg-emerald-50 text-emerald-700 rounded-full font-bold uppercase tracking-wider">PAYÉ</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Contextual FAB -->
+<button class="fixed bottom-24 right-container-margin w-16 h-16 bg-primary text-on-primary rounded-full elevation-2 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group shadow-xl">
+<span class="material-symbols-outlined text-2xl" data-icon="add_circle" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+<span class="absolute right-full mr-md bg-primary text-on-primary px-md py-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap font-label-md shadow-lg">Nouvelle Collecte</span>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-container-margin py-sm bg-surface dark:bg-inverse-surface rounded-t-xl shadow-lg border-t border-outline-variant dark:border-on-surface-variant md:hidden">
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-fixed text-on-primary-container dark:text-on-primary-fixed rounded-xl px-md py-xs active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-md py-xs hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-sm text-label-sm">Transactions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-md py-xs hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profil</span>
+</a>
+</nav>
+<script>
+        function toggleDrawer() {
+            const drawer = document.getElementById('nav-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            const isOpen = drawer.style.transform === 'translateX(0px)';
+            
+            if (isOpen) {
+                drawer.style.transform = 'translateX(-100%)';
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+                document.body.style.overflow = 'auto';
+            } else {
+                drawer.style.transform = 'translateX(0px)';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const drawer = document.getElementById('nav-drawer');
+            drawer.style.transform = 'translateX(-100%)';
+        });
+    </script>
+
+
+</body></html>

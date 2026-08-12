@@ -1,0 +1,55 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+
+import '../../../core/network/super_admin_token_storage.dart';
+import '../data/superadmin_auth_repository.dart';
+
+/// État minimal : `true` si un jeton super-admin valide (présent) est
+/// stocké, `false` sinon. Il n'existe pas d'endpoint `/superadmin/me` — on
+/// ne connaît donc pas de profil, seulement la présence d'un jeton. Ce
+/// contrôleur est entièrement indépendant de l'`AuthController` staff : les
+/// deux sessions ne se lisent, ni ne s'écrivent l'une l'autre.
+final superAdminAuthControllerProvider =
+    AsyncNotifierProvider<SuperAdminAuthController, bool>(SuperAdminAuthController.new);
+
+class SuperAdminAuthController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final token = await ref.watch(superAdminTokenStorageProvider).read();
+    return token != null;
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    state = const AsyncLoading<bool>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(superAdminAuthRepositoryProvider);
+      final token = await repository.login(email: email, password: password);
+      await ref.read(superAdminTokenStorageProvider).save(token);
+      return true;
+    });
+  }
+
+  Future<void> logout() async {
+    await ref.read(superAdminTokenStorageProvider).clear();
+    state = const AsyncData(false);
+  }
+}
+
+/// Id du compte super-admin actuellement connecté, obtenu en décodant
+/// localement le claim `sub` du jeton — il n'existe pas d'endpoint
+/// `/superadmin/me`. Utilisé uniquement pour les gardes UI d'auto-protection
+/// (ex. désactiver son propre compte) ; le backend reste la source de
+/// vérité et rejette de toute façon l'action côté serveur.
+final superAdminSelfIdProvider = FutureProvider<int?>((ref) async {
+  final token = await ref.watch(superAdminTokenStorageProvider).read();
+  if (token == null) return null;
+  try {
+    final claims = JwtDecoder.decode(token);
+    final sub = claims['sub'];
+    if (sub is int) return sub;
+    if (sub is String) return int.tryParse(sub);
+    return null;
+  } catch (_) {
+    return null;
+  }
+});

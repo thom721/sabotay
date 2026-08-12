@@ -1,0 +1,11 @@
+# macOS / éditeurs
+.DS_Store
+.idea/
+.vscode/
+
+# Claude Code — config locale à la machine, jamais partagée
+.claude/settings.local.json
+
+# Notes de session temporaires (facultatif — décommenter si tu ne veux pas
+# versionner les identifiants de test qu'elles contiennent)
+# SESSION_NOTES.md

@@ -1,0 +1,322 @@
+<!DOCTYPE html><html class="light" lang="fr" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Sabotaypro - Tableau de Bord Client</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#f7f9fb",
+                    "on-tertiary-fixed-variant": "#38485d",
+                    "error-container": "#ffdad6",
+                    "on-background": "#191c1e",
+                    "tertiary-container": "#0b1c30",
+                    "outline-variant": "#c5c6cd",
+                    "surface-variant": "#e0e3e5",
+                    "surface-container-highest": "#e0e3e5",
+                    "secondary-fixed": "#6ffbbe",
+                    "tertiary": "#000000",
+                    "primary-fixed": "#d6e3ff",
+                    "on-tertiary-container": "#75859d",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-high": "#e6e8ea",
+                    "background": "#f7f9fb",
+                    "on-tertiary-fixed": "#0b1c30",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#39475f",
+                    "on-surface-variant": "#44474d",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#4edea3",
+                    "inverse-primary": "#b9c7e4",
+                    "surface-container-low": "#f2f4f6",
+                    "surface-dim": "#d8dadc",
+                    "secondary": "#006c49",
+                    "on-primary-fixed": "#0d1c32",
+                    "surface-bright": "#f7f9fb",
+                    "primary-fixed-dim": "#b9c7e4",
+                    "surface-tint": "#515f78",
+                    "on-primary-container": "#76849f",
+                    "secondary-container": "#6cf8bb",
+                    "outline": "#75777e",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#eceef0",
+                    "primary": "#000000",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "inverse-on-surface": "#eff1f3",
+                    "tertiary-fixed-dim": "#b7c8e1",
+                    "on-surface": "#191c1e",
+                    "on-secondary-container": "#00714d",
+                    "primary-container": "#0d1c32",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#002113",
+                    "inverse-surface": "#2d3133",
+                    "tertiary-fixed": "#d3e4fe"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "display": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .balance-gradient {
+            background: linear-gradient(135deg, #0d1c32 0%, #191c1e 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-on-surface-variant flex justify-between items-center px-5 py-4 z-40" style="margin-left: 0px; width: 100%;">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed cursor-pointer">menu</span>
+<h1 class="font-bold text-xl text-primary dark:text-primary-fixed tracking-tight">Sabotaypro</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-medium text-on-surface-variant">Client Privilège</p>
+<p class="text-sm font-bold text-primary">Jean Dupont</p>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged man with a friendly expression, wearing a tailored navy blue suit against a clean, minimalist architectural background. The lighting is soft and corporate, maintaining high-end photography standards with crisp details and a shallow depth of field. The overall aesthetic is trustworthy and sophisticated, fitting a high-stakes financial environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6Jqhkv8zbykyeJZwYIvGPWKA6LXCQpPTD6-XhpAqaIGgwxBcSAKaR4Qv9PLlg2hgJbtK9ORR0sy3xu6Fqypds83GzPZ-Af1Ag6wiV71GwbArpTMAAtZJg8YxQKanwWEjj3JoIxIuFpO0h-t-5VQkz_zb9Xqy6aPb_h4nWZg-XQioWHu5ZKkIEkybswhYBbusHJwSHouiQqsO35pcGWP_AVBXWSlg1gV2JX5gZI3lQPX0EweIbgeI_">
+</div>
+</div>
+</header>
+<main class="max-w-5xl mx-auto px-5 py-6 space-y-6" style="margin-left: 0px;">
+<!-- Hero Section: Balance Card & Quick Stats (Bento Layout) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Main Balance Card -->
+<div class="md:col-span-2 balance-gradient rounded-xl p-8 text-white relative overflow-hidden shadow-xl active:scale-[0.98] transition-transform">
+<div class="relative z-10 flex flex-col h-full justify-between">
+<div>
+<div class="flex items-center gap-2 text-on-primary-container mb-1">
+<span class="text-sm font-medium opacity-80 uppercase tracking-widest">Montant total disponible</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl md:text-5xl font-bold tracking-tight">1.250.000</span>
+<span class="text-xl font-medium opacity-70">HTG</span>
+</div>
+</div>
+<div class="mt-8 flex gap-4">
+
+</div>
+</div>
+<!-- Abstract geometric shapes for visual depth -->
+<div class="absolute top-[-20%] right-[-10%] w-64 h-64 bg-primary rounded-full opacity-20 blur-3xl"></div>
+<div class="absolute bottom-[-10%] right-[10%] w-32 h-32 bg-secondary rounded-full opacity-10 blur-2xl"></div>
+</div>
+<!-- Carnet Stats -->
+<div class="grid grid-rows-2 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant shadow-sm flex flex-col justify-center">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">event</span>
+</div>
+<span class="text-sm font-medium text-on-surface-variant uppercase">Jours restants</span>
+</div>
+<p class="text-2xl font-bold text-primary">12 Jours</p>
+<div class="w-full bg-surface-container mt-3 h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[60%] rounded-full"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant shadow-sm flex flex-col justify-center">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-lg bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<span class="text-sm font-medium text-on-surface-variant uppercase">Jours dus</span>
+</div>
+<p class="text-2xl font-bold text-error">03 Jours</p>
+<p class="text-[10px] text-error font-medium mt-1">Action requise avant le 15/10</p>
+</div>
+</div>
+</div>
+<!-- Section Tabs & History -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-primary flex items-center gap-2">
+                    Historique détaillé
+                </h2>
+<div class="flex bg-surface-container p-1 rounded-lg">
+<button class="px-4 py-1.5 text-sm font-bold rounded-md bg-white text-primary shadow-sm transition-all" id="tab-payments" onclick="switchTab('payments')">Paiements</button>
+<button class="px-4 py-1.5 text-sm font-medium rounded-md text-on-surface-variant hover:text-primary transition-all" id="tab-withdrawals" onclick="switchTab('withdrawals')">Retraits</button>
+</div>
+</div>
+<!-- Transaction List -->
+<div class="space-y-3" id="transactions-container">
+<!-- Payment Item 1 -->
+<div class="transaction-item payment bg-surface-container-lowest p-4 rounded-xl border-l-4 border-secondary shadow-sm flex items-center justify-between hover:translate-x-1 transition-transform">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+<div>
+<p class="font-bold text-primary">Collecte Journalière</p>
+<p class="text-xs text-on-surface-variant">Hier, 14:30 • ID: #TR-9921</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-lg font-bold text-secondary">+ 25.000 HTG</p>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-bold uppercase">Validé</span>
+</div>
+</div>
+<!-- Withdrawal Item 1 (Hidden by default or shown based on tab) -->
+<div class="transaction-item withdrawal hidden bg-surface-container-lowest p-4 rounded-xl border-l-4 border-error shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined">outbox</span>
+</div>
+<div>
+<p class="font-bold text-primary">Retrait Guichet</p>
+<p class="text-xs text-on-surface-variant">02 Oct 2023, 09:15 • ID: #RT-8842</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-lg font-bold text-primary">- 150.000 FCFA</p>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-bold uppercase">Terminé</span>
+</div>
+</div>
+<!-- Payment Item 2 -->
+
+<!-- Placeholder Empty State (Example) -->
+<div class="flex flex-col items-center justify-center py-12 opacity-50 hidden" id="empty-state">
+<span class="material-symbols-outlined text-6xl mb-2">history_toggle_off</span>
+<p class="text-sm">Aucune transaction trouvée</p>
+</div>
+</div>
+<button class="w-full py-4 text-primary font-bold text-sm border-2 border-dashed border-outline-variant rounded-xl hover:border-primary transition-colors">
+                Voir tout l'historique
+            </button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-5 py-3 bg-surface dark:bg-inverse-surface border-t border-outline-variant shadow-lg md:hidden">
+<!-- Dashboard Active -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold mt-1">Dashboard</span>
+</a>
+<!-- History Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium mt-1">Historique</span>
+</a>
+<!-- Profile Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium mt-1">Profil</span>
+</a>
+</nav>
+<!-- Desktop Navigation Drawer (Visible on md+) -->
+<aside class="hidden md:flex flex-col h-full w-72 fixed left-0 top-0 z-50 bg-surface-container-lowest border-r border-outline-variant py-8 px-4">
+<div class="mb-10 px-4">
+<h2 class="font-bold text-2xl text-primary mb-1">Sabotaypro</h2>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">Terminal Client 0.1</p>
+</div>
+<div class="space-y-2">
+<a class="bg-secondary-container text-on-secondary-container rounded-full px-4 py-3 flex items-center gap-4 font-bold active:opacity-80 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-sm">Tableau de bord</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-full px-4 py-3 flex items-center gap-4 transition-all" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-sm">Historique</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-full px-4 py-3 flex items-center gap-4 transition-all" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm">Mes Cotisations</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-full px-4 py-3 flex items-center gap-4 transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm">Analyses</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-full px-4 py-3 flex items-center gap-4 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm">Paramètres</span>
+</a>
+</div>
+<div class="mt-auto p-4 bg-surface-container rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A macro close-up of a high-quality leather wallet with polished metallic accents, suggesting wealth and organized finance. The surrounding environment is a clean, modern desk with soft sunlight. The photo uses professional color grading to match the Sabotaypro navy and emerald theme, creating a cohesive and high-end financial identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWsxlFt8B8WR2yOaYbrihXGH1f5Q9s_hFgmIeSdwPucP9NfPG2jte0mA9UDYHgu1mpB8T5lIV90rJRFFN9LLhqC2fqaCKqv1rW2KaFJTDoOxLM_n68wWCQRwGDQC5VYOFZr3lIaqmnI0PKsRFDy_3u_28HzIKdIzXwkv8LP8CcwoxNmG3q413PbWP04vwsvGkQTDn_lfVa_6U-J9Sk_L-FVBQcT9LML__7apMEZ2x59ykS0TOzF7fc">
+</div>
+<div>
+<p class="text-xs font-bold text-primary leading-none">Jean Dupont</p>
+<p class="text-[10px] text-secondary mt-1 font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-secondary rounded-full inline-block"></span>
+                    Actif
+                </p>
+</div>
+</div>
+</aside>
+<script>
+        function switchTab(type) {
+            const payments = document.querySelectorAll('.payment');
+            const withdrawals = document.querySelectorAll('.withdrawal');
+            const tabPayments = document.getElementById('tab-payments');
+            const tabWithdrawals = document.getElementById('tab-withdrawals');
+
+            if (type === 'payments') {
+                payments.forEach(el => el.classList.remove('hidden'));
+                withdrawals.forEach(el => el.classList.add('hidden'));
+                
+                tabPayments.classList.add('bg-white', 'text-primary', 'shadow-sm');
+                tabPayments.classList.remove('text-on-surface-variant');
+                
+                tabWithdrawals.classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                tabWithdrawals.classList.add('text-on-surface-variant');
+            } else {
+                payments.forEach(el => el.classList.add('hidden'));
+                withdrawals.forEach(el => el.classList.remove('hidden'));
+
+                tabWithdrawals.classList.add('bg-white', 'text-primary', 'shadow-sm');
+                tabWithdrawals.classList.remove('text-on-surface-variant');
+                
+                tabPayments.classList.remove('bg-white', 'text-primary', 'shadow-sm');
+                tabPayments.classList.add('text-on-surface-variant');
+            }
+        }
+
+        // Adjust desktop margin
+        function adjustDesktopLayout() {
+            if (window.innerWidth >= 768) {
+                document.querySelector('main').style.marginLeft = '18rem';
+                document.querySelector('header').style.marginLeft = '18rem';
+                document.querySelector('header').style.width = 'calc(100% - 18rem)';
+            } else {
+                document.querySelector('main').style.marginLeft = '0';
+                document.querySelector('header').style.marginLeft = '0';
+                document.querySelector('header').style.width = '100%';
+            }
+        }
+
+        window.addEventListener('resize', adjustDesktopLayout);
+        window.addEventListener('DOMContentLoaded', adjustDesktopLayout);
+    </script>
+
+
+</body></html>
