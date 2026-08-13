@@ -185,16 +185,21 @@ async def verifier_abonnement(
         )
 
     now = now_local()
+    # Montant réellement facturé lors de POST /payer, pas l'ancien
+    # abonnement.montant (qui ne reflète que le dernier paiement confirmé —
+    # sinon un changement de prix entre-temps ne se répercute jamais).
+    montant_paye = (await crud_platform_config.get(session)).abonnement_montant_htg
     abonnement.statut = StatutAbonnement.ACTIF
     abonnement.date_paiement = now
     abonnement.date_renouvellement = (now + timedelta(days=365)).date()
     abonnement.moncash_transaction_id = payment.get("transaction_id")
+    abonnement.montant = montant_paye
     session.add(abonnement)
     session.add(
         PaiementAbonnement(
             abonnement_id=abonnement.id,
             entreprise_id=entreprise_id,
-            montant=abonnement.montant,
+            montant=montant_paye,
             moncash_order_id=abonnement.moncash_order_id,
             moncash_transaction_id=abonnement.moncash_transaction_id,
             paye_par_id=current_user.id,

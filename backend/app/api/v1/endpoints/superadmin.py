@@ -442,6 +442,7 @@ async def confirmer_paiement(
     abonnement.statut = StatutAbonnement.ACTIF
     abonnement.date_paiement = now
     abonnement.date_renouvellement = (now + timedelta(days=365)).date()
+    abonnement.montant = paiement.montant
     session.add(abonnement)
 
     paiement.statut = "confirme"

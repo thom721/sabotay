@@ -11,65 +11,148 @@ import '../../entreprise/data/entreprise_repository.dart';
 import '../../entreprise/domain/entreprise_profile.dart';
 import '../domain/paiement_abonnement.dart';
 
-final _dateFormat = DateFormat('dd/MM/yyyy');
+final _dateFormatLong = DateFormat('d MMMM yyyy', 'fr');
 final _amountFormat = NumberFormat.decimalPattern('fr');
 
-/// Génère le PDF du reçu de paiement d'abonnement — même format papier que
-/// les reçus de collecte/retrait (`transactions/presentation/recu_pdf.dart`),
-/// pour rester imprimable sur la même imprimante thermique.
+const _grisTexte = PdfColor.fromInt(0xFF666666);
+const _grisLigne = PdfColor.fromInt(0xFFDDDDDD);
+
+/// Génère le PDF du reçu de paiement d'abonnement — format facture pleine
+/// page (A4), pas le format thermique des reçus de collecte/retrait (ceux-là
+/// restent sur `transactions/presentation/recu_pdf.dart`) : un abonnement
+/// annuel B2B se documente comme une facture, pas comme un ticket de caisse.
 Future<Uint8List> _buildRecuAbonnementPdf({
   required PaiementAbonnement paiement,
   required EntrepriseProfile entreprise,
 }) {
-  final largeurMm = double.tryParse(
-        entreprise.formatRecu.replaceAll(RegExp('[^0-9.]'), ''),
-      ) ??
-      80;
-  final format = PdfPageFormat(
-    largeurMm * PdfPageFormat.mm,
-    double.infinity,
-    marginAll: 5 * PdfPageFormat.mm,
-  );
+  final numeroRecu = 'AB-${paiement.id.substring(0, 8).toUpperCase()}';
+  final methodeLabel = paiement.methode == 'especes' ? 'Espèces' : 'MonCash';
 
   final document = pw.Document();
   document.addPage(
     pw.Page(
-      pageFormat: format,
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
       build: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Center(
-            child: pw.Text(
-              entreprise.nom,
-              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Reçu', style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'SabotayPro',
+                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+          pw.Row(
+            children: [
+              _champ('Numéro de reçu', numeroRecu),
+              pw.SizedBox(width: 40),
+              _champ('Date payée', _dateFormatLong.format(paiement.datePaiement)),
+              pw.SizedBox(width: 40),
+              _champ('Méthode', methodeLabel),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('SabotayPro',
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('sabotay.infini-software.cloud',
+                        style: const pw.TextStyle(fontSize: 9, color: _grisTexte)),
+                  ],
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Facturé à',
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(entreprise.nom, style: const pw.TextStyle(fontSize: 9)),
+                    if (entreprise.adresse != null && entreprise.adresse!.isNotEmpty)
+                      pw.Text(entreprise.adresse!,
+                          style: const pw.TextStyle(fontSize: 9, color: _grisTexte)),
+                    if (entreprise.telephoneContact != null &&
+                        entreprise.telephoneContact!.isNotEmpty)
+                      pw.Text(entreprise.telephoneContact!,
+                          style: const pw.TextStyle(fontSize: 9, color: _grisTexte)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 32),
+          pw.Text(
+            '${_amountFormat.format(paiement.montant)} ${entreprise.devise} payé le '
+            '${_dateFormatLong.format(paiement.datePaiement)}',
+            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 16),
+          pw.Container(
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(bottom: pw.BorderSide(color: _grisLigne)),
+            ),
+            padding: const pw.EdgeInsets.only(bottom: 6),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Description',
+                    style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Montant',
+                    style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+              ],
             ),
           ),
-          if (entreprise.adresse != null && entreprise.adresse!.isNotEmpty)
-            pw.Center(child: pw.Text(entreprise.adresse!, style: const pw.TextStyle(fontSize: 8))),
-          if (entreprise.telephoneContact != null && entreprise.telephoneContact!.isNotEmpty)
-            pw.Center(
-              child: pw.Text(entreprise.telephoneContact!, style: const pw.TextStyle(fontSize: 8)),
-            ),
-          pw.SizedBox(height: 8),
-          pw.Center(
-            child: pw.Text(
-              'REÇU DE PAIEMENT — ABONNEMENT',
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(vertical: 8),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Abonnement annuel SabotayPro', style: const pw.TextStyle(fontSize: 10)),
+                pw.Text(
+                  '${_amountFormat.format(paiement.montant)} ${entreprise.devise}',
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+              ],
             ),
           ),
-          pw.Divider(),
-          _ligne('Date', _dateFormat.format(paiement.datePaiement)),
-          _ligne('Montant', '${_amountFormat.format(paiement.montant)} ${entreprise.devise}'),
-          if (paiement.moncashOrderId != null)
-            _ligne('Référence MonCash', paiement.moncashOrderId!),
-          if (paiement.payeParNom != null) _ligne('Confirmé par', paiement.payeParNom!),
-          _ligne('Reçu N°', 'AB-${paiement.id}'),
-          pw.Divider(),
-          if (entreprise.texteBasRecu != null && entreprise.texteBasRecu!.isNotEmpty) ...[
+          pw.Container(
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(top: pw.BorderSide(color: _grisLigne)),
+            ),
+            padding: const pw.EdgeInsets.only(top: 8),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                _totalLigne('Sous-total', '${_amountFormat.format(paiement.montant)} ${entreprise.devise}'),
+                _totalLigne('Total', '${_amountFormat.format(paiement.montant)} ${entreprise.devise}'),
+                _totalLigne(
+                  'Montant payé',
+                  '${_amountFormat.format(paiement.montant)} ${entreprise.devise}',
+                  gras: true,
+                ),
+              ],
+            ),
+          ),
+          if (paiement.moncashOrderId != null) ...[
+            pw.SizedBox(height: 16),
+            pw.Text('Référence MonCash : ${paiement.moncashOrderId}',
+                style: const pw.TextStyle(fontSize: 9, color: _grisTexte)),
+          ],
+          if (paiement.payeParNom != null) ...[
             pw.SizedBox(height: 4),
-            pw.Center(
-              child: pw.Text(entreprise.texteBasRecu!, style: const pw.TextStyle(fontSize: 8)),
-            ),
+            pw.Text('Confirmé par ${paiement.payeParNom}',
+                style: const pw.TextStyle(fontSize: 9, color: _grisTexte)),
           ],
         ],
       ),
@@ -78,13 +161,38 @@ Future<Uint8List> _buildRecuAbonnementPdf({
   return document.save();
 }
 
-pw.Widget _ligne(String label, String valeur) => pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+pw.Widget _champ(String label, String valeur) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        pw.Text(valeur, style: const pw.TextStyle(fontSize: 9)),
+      ],
+    );
+
+pw.Widget _totalLigne(String label, String valeur, {bool gras = false}) => pw.Padding(
+      padding: const pw.EdgeInsets.only(top: 4),
       child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: pw.MainAxisAlignment.end,
         children: [
-          pw.Text(label, style: const pw.TextStyle(fontSize: 9)),
-          pw.Text(valeur, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(
+            width: 100,
+            child: pw.Text(
+              label,
+              textAlign: pw.TextAlign.right,
+              style: pw.TextStyle(
+                fontSize: 9,
+                fontWeight: gras ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+            ),
+          ),
+          pw.SizedBox(width: 16),
+          pw.Text(
+            valeur,
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: gras ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
         ],
       ),
     );

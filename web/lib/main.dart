@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   // URLs propres (/superadmin/login) plutôt que le mode hash par défaut
   // (/#/superadmin/login) de Flutter Web.
   usePathUrlStrategy();
+  // Requis avant tout DateFormat(..., 'fr') (ex: reçu d'abonnement PDF) —
+  // sans ça, LocaleDataException au premier appel.
+  await initializeDateFormatting('fr');
   runApp(const ProviderScope(child: SabotayProApp()));
 }
 
