@@ -191,14 +191,19 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth > 860 ? 3 : (constraints.maxWidth > 560 ? 2 : 1);
+        // Mêmes seuils/ratios que _ResponsiveGrid de pos_api
+        // (core/responsive.dart : AppBreakpoints.xl=1100, .md=480) — sinon
+        // les cartes gardent le même ratio mais paraissent bien plus hautes
+        // ici, qui n'affiche que 3 colonnes max au lieu de 4.
+        final columns = constraints.maxWidth >= 1100 ? 4 : (constraints.maxWidth >= 480 ? 2 : 1);
+        final ratio = constraints.maxWidth >= 1100 ? 2.2 : (constraints.maxWidth >= 480 ? 2.0 : 3.2);
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: columns == 1 ? 3.4 : 2.1,
+          childAspectRatio: ratio,
           children: [
             _PosStyleStatCard(
               icon: Icons.storefront_outlined,
