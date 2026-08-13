@@ -16,10 +16,15 @@ class Env {
 
   /// URL de base de l'API FastAPI.
   ///
-  /// - Navigateur (kIsWeb) : chemin relatif `/api/v1`, résolu sur le même
-  ///   domaine que la page (nginx y proxy déjà `/api/v1/` vers le backend
-  ///   — voir deploiement/nginx/sabotay.conf). Ça marche sans configuration
-  ///   à la compilation, quel que soit le domaine (prod, staging, etc.).
+  /// - Navigateur, déployé (kIsWeb, domaine réel) : chemin relatif
+  ///   `/api/v1`, résolu sur le même domaine que la page (nginx y proxy déjà
+  ///   `/api/v1/` vers le backend — voir deploiement/nginx/sabotay.conf).
+  ///   Ça marche sans configuration à la compilation, quel que soit le
+  ///   domaine (prod, staging, etc.).
+  /// - Navigateur, `flutter run -d chrome` (kIsWeb, host localhost/127.0.0.1) :
+  ///   le serveur de dev Flutter ne proxy rien vers le backend, un chemin
+  ///   relatif n'aboutirait nulle part — on cible directement le backend
+  ///   local de dev (port 9004, voir ci-dessous).
   /// - Binaire desktop compilé : le port 9004 correspond au `SERVER_PORT`
   ///   par défaut de son propre serveur local (voir
   ///   `backend/app/core/config.py`) — même convention que pos_api (leur
@@ -28,7 +33,13 @@ class Env {
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
-    if (kIsWeb) return '/api/v1';
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host == 'localhost' || host == '127.0.0.1') {
+        return 'http://127.0.0.1:9004/api/v1';
+      }
+      return '/api/v1';
+    }
     return 'http://127.0.0.1:9004/api/v1';
   }
 

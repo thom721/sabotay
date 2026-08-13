@@ -22,7 +22,7 @@ COPY . .
 
 RUN mkdir -p /app/logs
 
-EXPOSE 9004
+EXPOSE 9008
 
 # Migre le schéma avant de démarrer — un seul conteneur (pas de scaling
 # horizontal ici), donc pas de risque de migrations concurrentes.
@@ -39,7 +39,7 @@ EXPOSE 9004
 CMD ["sh", "-c", "alembic upgrade head && exec gunicorn app.main:app \
      --workers 4 \
      --worker-class uvicorn.workers.UvicornWorker \
-     --bind 0.0.0.0:9004 \
+     --bind 0.0.0.0:9008 \
      --timeout 120 \
      --access-logfile /app/logs/access.log \
      --error-logfile /app/logs/error.log"]

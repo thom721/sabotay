@@ -52,7 +52,7 @@ services:
     # (réseau externe partagé) reste rejoint en plus, pour un éventuel proxy
     # dockerisé futur sur ce même VPS — actuellement inutilisé.
     ports:
-      - "127.0.0.1:9008:9004"
+      - "127.0.0.1:9008:9008"
     environment:
       PROJECT_NAME: SabotayPro
       ENVIRONMENT: production
