@@ -157,6 +157,23 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
     }
   }
 
+  // Style pos_api (admin_screen.dart::_configSection + champs Tarification) :
+  // fond blanc, bordure fine #E2E8F0, radius 8 — au lieu du remplissage
+  // colorScheme.surfaceVariant appliqué par défaut ailleurs dans l'app.
+  InputDecoration _tarifDecoration(String label) => InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -170,26 +187,53 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _montantController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Montant abonnement annuel (HTG)'),
-              validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Montant invalide';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _essaiController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Durée de l'essai gratuit (jours)"),
-              validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Nombre de jours invalide';
-                return null;
-              },
+            Card(
+              color: Colors.white,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Tarification', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _montantController,
+                            keyboardType: TextInputType.number,
+                            decoration: _tarifDecoration('Montant abonnement annuel (HTG)'),
+                            validator: (value) {
+                              final parsed = int.tryParse(value ?? '');
+                              if (parsed == null || parsed <= 0) return 'Montant invalide';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _essaiController,
+                            keyboardType: TextInputType.number,
+                            decoration: _tarifDecoration("Durée de l'essai gratuit (jours)"),
+                            validator: (value) {
+                              final parsed = int.tryParse(value ?? '');
+                              if (parsed == null || parsed <= 0) return 'Nombre de jours invalide';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
