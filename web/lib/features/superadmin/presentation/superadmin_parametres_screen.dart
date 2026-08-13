@@ -331,63 +331,82 @@ class _EmailTabState extends ConsumerState<_EmailTab> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _hostController,
-              decoration: const InputDecoration(
-                labelText: 'Serveur SMTP',
-                hintText: 'smtp.example.com',
+            Card(
+              color: Colors.white,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _portController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Port'),
-              validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Port invalide';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _userController,
-              decoration: const InputDecoration(labelText: "Nom d'utilisateur"),
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: widget.config.smtpPasswordDefini
-                    ? 'Mot de passe (laisser vide pour conserver l\'actuel)'
-                    : 'Mot de passe',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Configuration SMTP', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _hostController,
+                      decoration: const InputDecoration(
+                        labelText: 'Serveur SMTP',
+                        hintText: 'smtp.example.com',
+                      ),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _portController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Port'),
+                      validator: (value) {
+                        final parsed = int.tryParse(value ?? '');
+                        if (parsed == null || parsed <= 0) return 'Port invalide';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _userController,
+                      decoration: const InputDecoration(labelText: "Nom d'utilisateur"),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: widget.config.smtpPasswordDefini
+                            ? 'Mot de passe (laisser vide pour conserver l\'actuel)'
+                            : 'Mot de passe',
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (!widget.config.smtpPasswordDefini &&
+                            (value == null || value.isEmpty)) {
+                          return 'Champ requis';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _fromController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: "Adresse d'expédition",
+                        hintText: 'noreply@sabotaypro.com',
+                      ),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
+                    ),
+                  ],
                 ),
               ),
-              validator: (value) {
-                if (!widget.config.smtpPasswordDefini && (value == null || value.isEmpty)) {
-                  return 'Champ requis';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _fromController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: "Adresse d'expédition",
-                hintText: 'noreply@sabotaypro.com',
-              ),
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Champ requis' : null,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
