@@ -184,6 +184,17 @@ class AppTheme {
           side: BorderSide(color: colorScheme.outline),
         ),
       ),
+      // Sans ça, Material 3 utilise `surfaceContainerHigh` par défaut pour
+      // tout AlertDialog/Dialog — une surface tonale teintée par le seed
+      // (doré), pas blanc pur. Toutes les fenêtres modales de l'app
+      // (Ajouter un client, etc. — voir add_client_sheet.dart et les 5
+      // autres convertis en AlertDialog) doivent rester blanches, comme les
+      // Card partout ailleurs.
+      dialogTheme: DialogThemeData(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         // Style pos_api (core/theme.dart::AppTheme.light) : fond blanc
         // (`surface`, pas `surfaceVariant`) avec une bordure fine, coins
