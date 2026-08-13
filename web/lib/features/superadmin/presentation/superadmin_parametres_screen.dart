@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
+import '../../../core/widgets/async_state_views.dart';
+import '../../abonnement/domain/paiement_abonnement.dart';
+import '../data/superadmin_repository.dart';
 import '../domain/platform_config.dart';
 import 'platform_config_controller.dart';
 import 'superadmin_auth_controller.dart';
 import 'superadmin_scaffold.dart';
+
+final _paiementsEnAttenteProvider = FutureProvider<List<PaiementEnAttente>>((ref) {
+  return ref.watch(superAdminRepositoryProvider).fetchPaiementsEnAttente();
+});
 
 /// Réglages globaux de la plateforme, organisés en onglets — un par
 /// catégorie de configuration (Abonnement, Email pour l'instant, d'autres
@@ -27,7 +35,7 @@ class _SuperAdminParametresScreenState extends ConsumerState<SuperAdminParametre
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -65,21 +73,29 @@ class _SuperAdminParametresScreenState extends ConsumerState<SuperAdminParametre
             tabs: const [
               Tab(text: 'Abonnement'),
               Tab(text: 'Email'),
+              Tab(text: 'Paiements en attente'),
             ],
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 480,
-            child: configAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => const Center(child: Text('Impossible de charger les réglages')),
-              data: (config) => TabBarView(
-                controller: _tabController,
-                children: [
-                  _AbonnementTab(config: config),
-                  _EmailTab(config: config),
-                ],
-              ),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                configAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) =>
+                      const Center(child: Text('Impossible de charger les réglages')),
+                  data: (config) => _AbonnementTab(config: config),
+                ),
+                configAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) =>
+                      const Center(child: Text('Impossible de charger les réglages')),
+                  data: (config) => _EmailTab(config: config),
+                ),
+                const _PaiementsEnAttenteTab(),
+              ],
             ),
           ),
         ],
@@ -346,6 +362,104 @@ class _EmailTabState extends ConsumerState<_EmailTab> {
           ],
         ),
       ),
+    );
+  }
+}
+
+final _dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+final _montantFormat = NumberFormat('#,##0.##');
+
+/// Paiements espèces en attente de confirmation, toutes entreprises
+/// confondues — la seule vue permettant de retrouver une déclaration sans
+/// savoir déjà de quelle entreprise elle vient (voir aussi la fiche détail
+/// d'une entreprise, qui montre les siens seulement).
+class _PaiementsEnAttenteTab extends ConsumerWidget {
+  const _PaiementsEnAttenteTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final paiementsAsync = ref.watch(_paiementsEnAttenteProvider);
+
+    return paiementsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => ErrorState(
+        message: 'Impossible de charger les paiements en attente',
+        onRetry: () => ref.invalidate(_paiementsEnAttenteProvider),
+      ),
+      data: (paiements) => paiements.isEmpty
+          ? const EmptyState(message: 'Aucun paiement en attente')
+          : ListView.separated(
+              itemCount: paiements.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, i) => _PaiementEnAttenteTile(paiement: paiements[i]),
+            ),
+    );
+  }
+}
+
+class _PaiementEnAttenteTile extends ConsumerStatefulWidget {
+  final PaiementEnAttente paiement;
+  const _PaiementEnAttenteTile({required this.paiement});
+
+  @override
+  ConsumerState<_PaiementEnAttenteTile> createState() => _PaiementEnAttenteTileState();
+}
+
+class _PaiementEnAttenteTileState extends ConsumerState<_PaiementEnAttenteTile> {
+  bool _isProcessing = false;
+
+  Future<void> _traiter(Future<void> Function() action) async {
+    setState(() => _isProcessing = true);
+    try {
+      await action();
+      ref.invalidate(_paiementsEnAttenteProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Action impossible. Réessayez plus tard.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paiement = widget.paiement;
+
+    return ListTile(
+      title: Text(paiement.entrepriseNom),
+      subtitle: Text(
+        '${_montantFormat.format(paiement.montant)} HTG — '
+        '${_dateFormat.format(paiement.datePaiement)}'
+        '${paiement.payeParNom != null ? ' — déclaré par ${paiement.payeParNom}' : ''}',
+      ),
+      trailing: _isProcessing
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Rejeter',
+                  onPressed: () => _traiter(
+                    () => ref.read(superAdminRepositoryProvider).rejeterPaiement(paiement.id),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check),
+                  tooltip: 'Confirmer',
+                  onPressed: () => _traiter(
+                    () => ref.read(superAdminRepositoryProvider).confirmerPaiement(paiement.id),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

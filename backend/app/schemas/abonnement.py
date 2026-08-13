@@ -31,6 +31,15 @@ class PaiementAbonnementRead(SQLModel):
     paye_par_nom: str | None
 
 
+class PaiementEnAttenteRead(PaiementAbonnementRead):
+    """Même chose que PaiementAbonnementRead, avec l'entreprise identifiée —
+    nécessaire pour la vue superadmin toutes entreprises confondues (voir
+    GET /superadmin/paiements-en-attente)."""
+
+    entreprise_id: str
+    entreprise_nom: str
+
+
 class LicenceResponse(SQLModel):
     """Blob de licence signé (Ed25519) — vérifiable côté client sans réseau.
 

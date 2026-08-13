@@ -38,3 +38,37 @@ class PaiementAbonnement {
         payeParNom: json['paye_par_nom'] as String?,
       );
 }
+
+/// Paiement en attente, vue superadmin toutes entreprises confondues
+/// (`GET /superadmin/paiements-en-attente`) — mêmes champs que
+/// [PaiementAbonnement] plus l'identité de l'entreprise.
+class PaiementEnAttente extends PaiementAbonnement {
+  final String entrepriseId;
+  final String entrepriseNom;
+
+  const PaiementEnAttente({
+    required super.id,
+    required super.montant,
+    required super.methode,
+    required super.statut,
+    required super.moncashOrderId,
+    required super.moncashTransactionId,
+    required super.datePaiement,
+    required super.payeParNom,
+    required this.entrepriseId,
+    required this.entrepriseNom,
+  });
+
+  factory PaiementEnAttente.fromJson(Map<String, dynamic> json) => PaiementEnAttente(
+        id: json['id'] as String,
+        montant: num.parse(json['montant'].toString()),
+        methode: json['methode'] as String,
+        statut: json['statut'] as String,
+        moncashOrderId: json['moncash_order_id'] as String?,
+        moncashTransactionId: json['moncash_transaction_id'] as String?,
+        datePaiement: DateTime.parse(json['date_paiement'] as String),
+        payeParNom: json['paye_par_nom'] as String?,
+        entrepriseId: json['entreprise_id'] as String,
+        entrepriseNom: json['entreprise_nom'] as String,
+      );
+}

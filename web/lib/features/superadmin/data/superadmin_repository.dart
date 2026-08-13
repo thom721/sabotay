@@ -44,6 +44,15 @@ class SuperAdminRepository {
         .toList();
   }
 
+  /// Paiements en espèces en attente de confirmation, toutes entreprises
+  /// confondues.
+  Future<List<PaiementEnAttente>> fetchPaiementsEnAttente() async {
+    final response = await _dio.get('/superadmin/paiements-en-attente');
+    return (response.data as List<dynamic>)
+        .map((e) => PaiementEnAttente.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Confirme un paiement en espèces déclaré par un tenant — active
   /// l'abonnement.
   Future<PaiementAbonnement> confirmerPaiement(String paiementId) async {

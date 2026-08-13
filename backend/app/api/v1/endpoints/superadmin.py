@@ -19,7 +19,7 @@ from app.models.paiement_abonnement import PaiementAbonnement
 from app.models.super_admin import SuperAdmin
 from app.models.transaction import Transaction, TypeTransaction
 from app.models.utilisateur import Utilisateur
-from app.schemas.abonnement import PaiementAbonnementRead
+from app.schemas.abonnement import PaiementAbonnementRead, PaiementEnAttenteRead
 from app.schemas.superadmin import (
     AbonnementSuperAdminRead,
     ClientSuperAdminRead,
@@ -402,18 +402,22 @@ async def read_entreprise_paiements(
     return list(result.scalars().all())
 
 
-@router.get("/paiements-en-attente", response_model=list[PaiementAbonnementRead])
+@router.get("/paiements-en-attente", response_model=list[PaiementEnAttenteRead])
 async def list_paiements_en_attente(
     session: SessionDep, current_super_admin: CurrentSuperAdmin
-) -> list[PaiementAbonnement]:
+) -> list[PaiementEnAttenteRead]:
     """Paiements espèces déclarés par des tenants, tous confondus, en attente
     de confirmation — voir POST .../confirmer ci-dessous."""
     result = await session.execute(
-        select(PaiementAbonnement)
+        select(PaiementAbonnement, Entreprise.nom)
+        .join(Entreprise, Entreprise.id == PaiementAbonnement.entreprise_id)
         .where(PaiementAbonnement.statut == "en_attente")
         .order_by(PaiementAbonnement.date_paiement.asc())
     )
-    return list(result.scalars().all())
+    return [
+        PaiementEnAttenteRead(**paiement.model_dump(), entreprise_nom=nom)
+        for paiement, nom in result.all()
+    ]
 
 
 @router.post("/paiements/{paiement_id}/confirmer", response_model=PaiementAbonnementRead)
