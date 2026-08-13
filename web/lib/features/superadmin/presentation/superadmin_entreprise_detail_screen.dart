@@ -290,43 +290,151 @@ class _HistoriquePaiements extends ConsumerWidget {
                 children: [
                   for (var i = 0; i < paiements.length; i++) ...[
                     if (i > 0) const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        '${_montantFormat.format(paiements[i].montant)} HTG — '
-                        '${_dateFormat.format(paiements[i].datePaiement)}',
-                      ),
-                      subtitle: paiements[i].payeParNom != null
-                          ? Text('Confirmé par ${paiements[i].payeParNom}')
-                          : null,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.print_outlined),
-                        tooltip: 'Imprimer le reçu',
-                        onPressed: () => imprimerRecuAbonnement(
-                          context,
-                          ref,
-                          paiement: paiements[i],
-                          // Le super-admin n'a pas de jeton staff — pas
-                          // d'accès à GET /entreprises/profil (voir
-                          // recu_abonnement_pdf.dart). Profil minimal
-                          // reconstruit depuis EntrepriseSuperAdminRead,
-                          // seuls nom/devise sont garantis disponibles ici.
-                          entreprise: EntrepriseProfile(
-                            id: summary.id,
-                            nom: summary.nom,
-                            devise: summary.devise,
-                            adresse: null,
-                            telephoneContact: null,
-                            formatRecu: '80mm',
-                            texteBasRecu: null,
-                            statut: summary.statut,
-                          ),
-                        ),
-                      ),
+                    _PaiementTile(
+                      entrepriseId: entrepriseId,
+                      paiement: paiements[i],
+                      summary: summary,
                     ),
                   ],
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _PaiementTile extends ConsumerStatefulWidget {
+  final String entrepriseId;
+  final PaiementAbonnement paiement;
+  final EntrepriseSummary summary;
+
+  const _PaiementTile({
+    required this.entrepriseId,
+    required this.paiement,
+    required this.summary,
+  });
+
+  @override
+  ConsumerState<_PaiementTile> createState() => _PaiementTileState();
+}
+
+class _PaiementTileState extends ConsumerState<_PaiementTile> {
+  bool _isProcessing = false;
+
+  Future<void> _traiter(Future<void> Function() action) async {
+    setState(() => _isProcessing = true);
+    try {
+      await action();
+      ref.invalidate(superAdminEntreprisePaiementsProvider(widget.entrepriseId));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Action impossible. Réessayez plus tard.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paiement = widget.paiement;
+    final methodeLabel = paiement.methode == 'especes' ? 'Espèces' : 'MonCash';
+
+    return ListTile(
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${_montantFormat.format(paiement.montant)} HTG — '
+              '${_dateFormat.format(paiement.datePaiement)} ($methodeLabel)',
+            ),
+          ),
+          if (paiement.statut != 'confirme')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: (paiement.statut == 'en_attente'
+                        ? Theme.of(context).colorScheme.tertiary
+                        : Theme.of(context).colorScheme.error)
+                    .withOpacity(0.14),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                paiement.statut == 'en_attente' ? 'En attente' : 'Rejeté',
+                style: TextStyle(
+                  color: paiement.statut == 'en_attente'
+                      ? Theme.of(context).colorScheme.tertiary
+                      : Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
+      subtitle: paiement.payeParNom != null
+          ? Text(
+              paiement.statut == 'en_attente'
+                  ? 'Déclaré par ${paiement.payeParNom}'
+                  : 'Confirmé par ${paiement.payeParNom}',
+            )
+          : null,
+      trailing: _isProcessing
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : paiement.statut == 'en_attente'
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Rejeter',
+                      onPressed: () => _traiter(
+                        () => ref
+                            .read(superAdminRepositoryProvider)
+                            .rejeterPaiement(paiement.id),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check),
+                      tooltip: 'Confirmer',
+                      onPressed: () => _traiter(
+                        () => ref
+                            .read(superAdminRepositoryProvider)
+                            .confirmerPaiement(paiement.id),
+                      ),
+                    ),
+                  ],
+                )
+              : IconButton(
+                  icon: const Icon(Icons.print_outlined),
+                  tooltip: 'Imprimer le reçu',
+                  onPressed: () => imprimerRecuAbonnement(
+                    context,
+                    ref,
+                    paiement: paiement,
+                    // Le super-admin n'a pas de jeton staff — pas d'accès à
+                    // GET /entreprises/profil (voir recu_abonnement_pdf.dart).
+                    // Profil minimal reconstruit depuis
+                    // EntrepriseSuperAdminRead, seuls nom/devise sont
+                    // garantis disponibles ici.
+                    entreprise: EntrepriseProfile(
+                      id: widget.summary.id,
+                      nom: widget.summary.nom,
+                      devise: widget.summary.devise,
+                      adresse: null,
+                      telephoneContact: null,
+                      formatRecu: '80mm',
+                      texteBasRecu: null,
+                      statut: widget.summary.statut,
+                    ),
+                  ),
+                ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/async_state_views.dart';
@@ -7,6 +8,8 @@ import '../../dashboard/presentation/dashboard_screen.dart';
 import '../data/entreprise_repository.dart';
 import '../domain/entreprise_profile.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/user.dart';
+import '../../auth/presentation/auth_controller.dart';
 
 /// Fiche entreprise : informations générales + format de reçu (édition
 /// réservée à l'Admin côté backend) et changement du mot de passe personnel
@@ -17,6 +20,8 @@ class EntrepriseProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(entrepriseProfileProvider);
+    final currentUser = ref.watch(authControllerProvider).value;
+    final isAdmin = currentUser?.role == RoleUtilisateur.admin;
 
     return DashboardShell(
       title: 'Entreprise',
@@ -38,6 +43,12 @@ class EntrepriseProfileScreen extends ConsumerWidget {
             ),
             data: (profile) => _ProfileInfoCard(profile: profile),
           ),
+          if (isAdmin) ...[
+            const SizedBox(height: 24),
+            Text('Installation bureau', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            const _CodeInstallationCard(),
+          ],
           const SizedBox(height: 24),
           Text('Paramètres du reçu', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
@@ -57,6 +68,138 @@ class EntrepriseProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           const _ChangePasswordCard(),
         ],
+      ),
+    );
+  }
+}
+
+/// Code d'installation bureau (Epic 2/5) — saisi dans l'assistant
+/// d'installation du poste local pour le lier au cloud sans email/mot de
+/// passe. Régénérer invalide l'ancien code (voir POST côté backend).
+class _CodeInstallationCard extends ConsumerWidget {
+  const _CodeInstallationCard();
+
+  Future<void> _regenerer(BuildContext context, WidgetRef ref) async {
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Régénérer le code ?'),
+        content: const Text(
+          'L\'ancien code d\'installation ne fonctionnera plus. À utiliser si '
+          'vous devez refaire l\'installation sur un nouveau poste.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Régénérer'),
+          ),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+
+    try {
+      await ref.read(entrepriseRepositoryProvider).regenererCodeInstallation();
+      ref.invalidate(codeInstallationProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nouveau code généré')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de régénérer le code')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final codeAsync = ref.watch(codeInstallationProvider);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: codeAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (error, _) => ErrorState(
+            message: 'Impossible de charger le code d\'installation',
+            onRetry: () => ref.invalidate(codeInstallationProvider),
+          ),
+          data: (code) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'À saisir dans l\'assistant d\'installation du poste bureau '
+                '(pas besoin d\'email ni de mot de passe).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        code.code ?? '—',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                              letterSpacing: 2,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Copier',
+                    icon: const Icon(Icons.copy_outlined),
+                    onPressed: code.code == null
+                        ? null
+                        : () {
+                            Clipboard.setData(ClipboardData(text: code.code!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Code copié')),
+                            );
+                          },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (code.utilise)
+                Text(
+                  'Ce code a déjà été utilisé pour lier un poste.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _regenerer(context, ref),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Régénérer'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

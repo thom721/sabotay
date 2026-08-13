@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 from typing import Annotated
 
@@ -9,6 +10,7 @@ from sqlmodel import select
 import app.crud.platform_config as crud_platform_config
 from app.core.db import get_session
 from app.core.deps import CurrentSuperAdmin
+from app.core.dt_utils import now_local
 from app.core.security import hash_password
 from app.models.abonnement import Abonnement, StatutAbonnement
 from app.models.client import Client
@@ -398,3 +400,74 @@ async def read_entreprise_paiements(
         .order_by(PaiementAbonnement.date_paiement.desc())
     )
     return list(result.scalars().all())
+
+
+@router.get("/paiements-en-attente", response_model=list[PaiementAbonnementRead])
+async def list_paiements_en_attente(
+    session: SessionDep, current_super_admin: CurrentSuperAdmin
+) -> list[PaiementAbonnement]:
+    """Paiements espèces déclarés par des tenants, tous confondus, en attente
+    de confirmation — voir POST .../confirmer ci-dessous."""
+    result = await session.execute(
+        select(PaiementAbonnement)
+        .where(PaiementAbonnement.statut == "en_attente")
+        .order_by(PaiementAbonnement.date_paiement.asc())
+    )
+    return list(result.scalars().all())
+
+
+@router.post("/paiements/{paiement_id}/confirmer", response_model=PaiementAbonnementRead)
+async def confirmer_paiement(
+    paiement_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
+) -> PaiementAbonnement:
+    """Confirme un paiement espèces déclaré par un tenant — active
+    l'abonnement (même effet que verifier_abonnement pour MonCash)."""
+    paiement = await session.get(PaiementAbonnement, paiement_id)
+    if paiement is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Paiement introuvable"
+        )
+    if paiement.statut != "en_attente":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ce paiement n'est plus en attente (statut actuel : {paiement.statut})",
+        )
+
+    abonnement = await session.get(Abonnement, paiement.abonnement_id)
+    now = now_local()
+    abonnement.statut = StatutAbonnement.ACTIF
+    abonnement.date_paiement = now
+    abonnement.date_renouvellement = (now + timedelta(days=365)).date()
+    session.add(abonnement)
+
+    paiement.statut = "confirme"
+    paiement.date_paiement = now
+    session.add(paiement)
+
+    await session.commit()
+    await session.refresh(paiement)
+    return paiement
+
+
+@router.post("/paiements/{paiement_id}/rejeter", response_model=PaiementAbonnementRead)
+async def rejeter_paiement(
+    paiement_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
+) -> PaiementAbonnement:
+    """Rejette un paiement espèces déclaré par erreur ou frauduleusement —
+    n'active jamais l'abonnement."""
+    paiement = await session.get(PaiementAbonnement, paiement_id)
+    if paiement is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Paiement introuvable"
+        )
+    if paiement.statut != "en_attente":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ce paiement n'est plus en attente (statut actuel : {paiement.statut})",
+        )
+
+    paiement.statut = "rejete"
+    session.add(paiement)
+    await session.commit()
+    await session.refresh(paiement)
+    return paiement

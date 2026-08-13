@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../domain/code_installation.dart';
 import '../domain/entreprise_profile.dart';
 
 final entrepriseRepositoryProvider = Provider<EntrepriseRepository>((ref) {
@@ -12,6 +13,13 @@ final entrepriseRepositoryProvider = Provider<EntrepriseRepository>((ref) {
 /// Accessible en lecture à tout le staff, modifiable par l'Admin uniquement.
 final entrepriseProfileProvider = FutureProvider<EntrepriseProfile>((ref) {
   return ref.watch(entrepriseRepositoryProvider).getProfile();
+});
+
+/// Code d'installation bureau courant — réservé à l'Admin (voir
+/// `require_roles(RoleUtilisateur.ADMIN)` côté backend, 403 pour les autres
+/// rôles).
+final codeInstallationProvider = FutureProvider<CodeInstallation>((ref) {
+  return ref.watch(entrepriseRepositoryProvider).getCodeInstallation();
 });
 
 class EntrepriseRepository {
@@ -40,5 +48,15 @@ class EntrepriseRepository {
 
     final response = await _dio.patch('/entreprises/profil', data: data);
     return EntrepriseProfile.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CodeInstallation> getCodeInstallation() async {
+    final response = await _dio.get('/entreprises/code-installation');
+    return CodeInstallation.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CodeInstallation> regenererCodeInstallation() async {
+    final response = await _dio.post('/entreprises/code-installation');
+    return CodeInstallation.fromJson(response.data as Map<String, dynamic>);
   }
 }

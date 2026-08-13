@@ -15,6 +15,13 @@ class PaiementAbonnement(SQLModel, table=True):
     # direct sans jointure (même pattern que Transaction.entreprise_id).
     entreprise_id: str = Field(foreign_key="entreprises.id", index=True)
     montant: int
+    # "moncash" | "especes" — même pattern que pos_api (BillingPayment.method,
+    # qui distingue moncash/natcash/manual). Un paiement espèces est déclaré
+    # par le tenant puis reste `en_attente` tant qu'un superadmin ne l'a pas
+    # confirmé (POST /superadmin/paiements/{id}/confirmer) — l'abonnement
+    # n'est activé qu'à la confirmation, jamais à la déclaration seule.
+    methode: str = Field(default="moncash")
+    statut: str = Field(default="confirme")  # "confirme" | "en_attente" | "rejete"
     moncash_order_id: str | None = Field(default=None)
     moncash_transaction_id: str | None = Field(default=None)
     date_paiement: datetime = Field(default_factory=now_local)

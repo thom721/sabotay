@@ -211,6 +211,40 @@ async def verifier_abonnement(
 
 
 @router.post(
+    "/declarer-especes",
+    response_model=PaiementAbonnementRead,
+    dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
+)
+async def declarer_paiement_especes(
+    session: SessionDep, entreprise_id: TenantId, current_user: CurrentUser
+) -> PaiementAbonnement:
+    """Déclare un paiement en espèces pour l'abonnement (Admin uniquement) —
+    même principe que pos_api (BillingPayment method='cash', status
+    initialement 'pending') : reste `en_attente` tant qu'un superadmin ne l'a
+    pas confirmé (POST /superadmin/paiements/{id}/confirmer). L'abonnement
+    n'est activé qu'à la confirmation, jamais à la seule déclaration — sinon
+    n'importe qui pourrait s'auto-activer sans payer."""
+    if settings.LOCAL_MODE:
+        raise _INDISPONIBLE_EN_LOCAL
+    abonnement = await _get_abonnement_for_tenant(session, entreprise_id)
+    platform_config = await crud_platform_config.get(session)
+
+    paiement = PaiementAbonnement(
+        abonnement_id=abonnement.id,
+        entreprise_id=entreprise_id,
+        montant=platform_config.abonnement_montant_htg,
+        methode="especes",
+        statut="en_attente",
+        paye_par_id=current_user.id,
+        paye_par_nom=current_user.nom,
+    )
+    session.add(paiement)
+    await session.commit()
+    await session.refresh(paiement)
+    return paiement
+
+
+@router.post(
     "/marquer-paye-dev",
     response_model=AbonnementRead,
     dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],

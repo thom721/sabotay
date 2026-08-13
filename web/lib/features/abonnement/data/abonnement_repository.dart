@@ -58,4 +58,11 @@ class AbonnementRepository {
       abonnement: Abonnement.fromJson(data['abonnement'] as Map<String, dynamic>),
     );
   }
+
+  /// Déclare un paiement en espèces (Admin uniquement) — reste en_attente
+  /// jusqu'à confirmation par un superadmin, n'active pas l'abonnement.
+  Future<PaiementAbonnement> declarerPaiementEspeces() async {
+    final response = await _dio.post('/abonnement/declarer-especes', data: {});
+    return PaiementAbonnement.fromJson(response.data as Map<String, dynamic>);
+  }
 }

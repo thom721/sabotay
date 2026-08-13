@@ -44,6 +44,19 @@ class SuperAdminRepository {
         .toList();
   }
 
+  /// Confirme un paiement en espèces déclaré par un tenant — active
+  /// l'abonnement.
+  Future<PaiementAbonnement> confirmerPaiement(String paiementId) async {
+    final response = await _dio.post('/superadmin/paiements/$paiementId/confirmer');
+    return PaiementAbonnement.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Rejette un paiement en espèces déclaré par erreur ou frauduleusement.
+  Future<PaiementAbonnement> rejeterPaiement(String paiementId) async {
+    final response = await _dio.post('/superadmin/paiements/$paiementId/rejeter');
+    return PaiementAbonnement.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// Repasse `est_installe` à False — l'entreprise pourra refaire
   /// l'installation bureau (un nouveau code d'installation se régénère
   /// automatiquement au prochain accès, voir entreprises.py côté backend).

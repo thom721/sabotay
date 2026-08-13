@@ -4,6 +4,11 @@
 class PaiementAbonnement {
   final String id;
   final num montant;
+  // "moncash" | "especes" — voir migration 0027.
+  final String methode;
+  // "confirme" | "en_attente" | "rejete" — un paiement espèces reste
+  // en_attente jusqu'à confirmation superadmin.
+  final String statut;
   final String? moncashOrderId;
   final String? moncashTransactionId;
   final DateTime datePaiement;
@@ -14,6 +19,8 @@ class PaiementAbonnement {
   const PaiementAbonnement({
     required this.id,
     required this.montant,
+    required this.methode,
+    required this.statut,
     required this.moncashOrderId,
     required this.moncashTransactionId,
     required this.datePaiement,
@@ -23,6 +30,8 @@ class PaiementAbonnement {
   factory PaiementAbonnement.fromJson(Map<String, dynamic> json) => PaiementAbonnement(
         id: json['id'] as String,
         montant: num.parse(json['montant'].toString()),
+        methode: json['methode'] as String,
+        statut: json['statut'] as String,
         moncashOrderId: json['moncash_order_id'] as String?,
         moncashTransactionId: json['moncash_transaction_id'] as String?,
         datePaiement: DateTime.parse(json['date_paiement'] as String),

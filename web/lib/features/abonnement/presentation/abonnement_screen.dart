@@ -10,7 +10,6 @@ import '../../../core/widgets/dashboard_shell.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../data/abonnement_repository.dart';
 import '../domain/abonnement.dart';
-import '../domain/paiement_abonnement.dart';
 import 'recu_abonnement_pdf.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
@@ -57,6 +56,7 @@ class _AbonnementContent extends ConsumerStatefulWidget {
 class _AbonnementContentState extends ConsumerState<_AbonnementContent> {
   bool _isPaying = false;
   bool _isVerifying = false;
+  bool _isDeclaringEspeces = false;
 
   Future<void> _payer() async {
     setState(() => _isPaying = true);
@@ -101,6 +101,51 @@ class _AbonnementContentState extends ConsumerState<_AbonnementContent> {
       );
     } finally {
       if (mounted) setState(() => _isVerifying = false);
+    }
+  }
+
+  Future<void> _declarerEspeces() async {
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déclarer un paiement en espèces ?'),
+        content: const Text(
+          'À utiliser uniquement si vous avez déjà remis le montant en '
+          'espèces à un responsable SabotayPro. Un administrateur système '
+          'devra confirmer cette déclaration avant que l\'abonnement ne '
+          's\'active.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Déclarer'),
+          ),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+
+    setState(() => _isDeclaringEspeces = true);
+    try {
+      await ref.read(abonnementRepositoryProvider).declarerPaiementEspeces();
+      ref.invalidate(paiementsAbonnementProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Déclaration envoyée — en attente de confirmation par l\'administrateur système.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'envoyer la déclaration. Réessayez plus tard.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeclaringEspeces = false);
     }
   }
 
@@ -154,6 +199,17 @@ class _AbonnementContentState extends ConsumerState<_AbonnementContent> {
                             : const Icon(Icons.check_circle_outline, size: 18),
                         label: const Text('J\'ai payé — Vérifier'),
                       ),
+                      OutlinedButton.icon(
+                        onPressed: _isDeclaringEspeces ? null : _declarerEspeces,
+                        icon: _isDeclaringEspeces
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.money_outlined, size: 18),
+                        label: const Text('Payer en espèces'),
+                      ),
                     ],
                   ),
                 ],
@@ -195,22 +251,42 @@ class _HistoriquePaiements extends ConsumerWidget {
                   for (var i = 0; i < paiements.length; i++) ...[
                     if (i > 0) const Divider(height: 1),
                     ListTile(
-                      title: Text(
-                        '${_montantFormat.format(paiements[i].montant)} HTG — '
-                        '${_dateFormat.format(paiements[i].datePaiement)}',
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${_montantFormat.format(paiements[i].montant)} HTG — '
+                              '${_dateFormat.format(paiements[i].datePaiement)}'
+                              ' (${paiements[i].methode == 'especes' ? 'Espèces' : 'MonCash'})',
+                            ),
+                          ),
+                          if (paiements[i].statut != 'confirme')
+                            _StatutChip(
+                              label: paiements[i].statut == 'en_attente' ? 'En attente' : 'Rejeté',
+                              color: paiements[i].statut == 'en_attente'
+                                  ? Theme.of(context).colorScheme.tertiary
+                                  : Theme.of(context).colorScheme.error,
+                            ),
+                        ],
                       ),
                       subtitle: paiements[i].payeParNom != null
-                          ? Text('Confirmé par ${paiements[i].payeParNom}')
+                          ? Text(
+                              paiements[i].statut == 'en_attente'
+                                  ? 'Déclaré par ${paiements[i].payeParNom}'
+                                  : 'Confirmé par ${paiements[i].payeParNom}',
+                            )
                           : null,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.print_outlined),
-                        tooltip: 'Imprimer le reçu',
-                        onPressed: () => imprimerRecuAbonnement(
-                          context,
-                          ref,
-                          paiement: paiements[i],
-                        ),
-                      ),
+                      trailing: paiements[i].statut == 'confirme'
+                          ? IconButton(
+                              icon: const Icon(Icons.print_outlined),
+                              tooltip: 'Imprimer le reçu',
+                              onPressed: () => imprimerRecuAbonnement(
+                                context,
+                                ref,
+                                paiement: paiements[i],
+                              ),
+                            )
+                          : null,
                     ),
                   ],
                 ],

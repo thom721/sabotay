@@ -23,6 +23,8 @@ class AbonnementPayerResponse(SQLModel):
 class PaiementAbonnementRead(SQLModel):
     id: str
     montant: int
+    methode: str
+    statut: str
     moncash_order_id: str | None
     moncash_transaction_id: str | None
     date_paiement: datetime
