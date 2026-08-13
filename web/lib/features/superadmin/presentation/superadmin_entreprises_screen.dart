@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/async_state_views.dart';
-import '../../../core/widgets/stat_card.dart';
 import '../data/superadmin_repository.dart';
 import '../domain/entreprise_summary.dart';
 import '../domain/platform_statistiques.dart';
@@ -201,41 +200,41 @@ class _StatsGrid extends StatelessWidget {
           crossAxisSpacing: 10,
           childAspectRatio: columns == 1 ? 3.4 : 2.1,
           children: [
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.storefront_outlined,
               label: 'Entreprises',
               value: stats.nbEntreprisesTotal.toString(),
+              color: const Color(0xFF0077C5),
             ),
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.verified_outlined,
               label: 'Abonnements actifs',
               value: stats.nbEntreprisesAbonnementActif.toString(),
+              color: const Color(0xFF2CA01C),
             ),
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.groups_outlined,
               label: 'Clients (total)',
               value: stats.nbClientsTotal.toString(),
+              color: const Color(0xFF3182CE),
             ),
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.badge_outlined,
               label: 'Employés (total)',
               value: stats.nbEmployesTotal.toString(),
+              color: const Color(0xFFD69E2E),
             ),
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.payments_outlined,
               label: 'Collecté par les entreprises',
               value: '${_montantFormat.format(stats.montantTotalCollecte)} HTG',
+              color: const Color(0xFF2CA01C),
             ),
-            StatCard(
-              dense: true,
+            _PosStyleStatCard(
               icon: Icons.receipt_long_outlined,
               label: 'Revenu abonnements',
               value: '${_montantFormat.format(stats.montantAbonnementsCollecte)} HTG',
+              color: const Color(0xFF0077C5),
             ),
           ],
         );
@@ -284,6 +283,92 @@ class _EntrepriseRow extends StatelessWidget {
             )
           : const Chip(label: Text('Aucun abonnement')),
       onTap: () => context.push('/superadmin/entreprises/${entreprise.id}'),
+    );
+  }
+}
+
+/// Reproduction fidèle du `StatCard` de pos_api
+/// (frontend/lib/shared/widgets/stat_card.dart) : icône colorée dans un
+/// carré arrondi à gauche, label + valeur (+ sous-titre optionnel) à
+/// droite — au lieu du StatCard vertical utilisé ailleurs dans Sabotay.
+class _PosStyleStatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final String? subtitle;
+
+  const _PosStyleStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(color: Color(0xFF718096), fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xFF1A202C),
+                      ),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(color: color, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

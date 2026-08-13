@@ -25,7 +25,9 @@ class SuperAdminScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Même fond que le dashboard pos_api (AppColors.background) — les
+      // cartes restent blanches par-dessus, ce qui les fait ressortir.
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         leading: leading,
         title: Text(title),

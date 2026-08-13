@@ -72,7 +72,7 @@ class _SuperAdminParametresScreenState extends ConsumerState<SuperAdminParametre
             tabAlignment: TabAlignment.start,
             tabs: const [
               Tab(text: 'Abonnement'),
-              Tab(text: 'Email'),
+              Tab(text: 'SMTP Config'),
               Tab(text: 'Paiements en attente'),
             ],
           ),
