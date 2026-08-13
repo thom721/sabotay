@@ -157,23 +157,6 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
     }
   }
 
-  // Style pos_api (admin_screen.dart::_configSection + champs Tarification) :
-  // fond blanc, bordure fine #E2E8F0, radius 8 — au lieu du remplissage
-  // colorScheme.surfaceVariant appliqué par défaut ailleurs dans l'app.
-  InputDecoration _tarifDecoration(String label) => InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -201,35 +184,49 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
                   children: [
                     Text('Tarification', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _montantController,
-                            keyboardType: TextInputType.number,
-                            decoration: _tarifDecoration('Montant abonnement annuel (HTG)'),
-                            validator: (value) {
-                              final parsed = int.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) return 'Montant invalide';
-                              return null;
-                            },
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final montantField = TextFormField(
+                          controller: _montantController,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Montant abonnement annuel (HTG)'),
+                          validator: (value) {
+                            final parsed = int.tryParse(value ?? '');
+                            if (parsed == null || parsed <= 0) return 'Montant invalide';
+                            return null;
+                          },
+                        );
+                        final essaiField = TextFormField(
+                          controller: _essaiController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: "Durée de l'essai gratuit (jours)",
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _essaiController,
-                            keyboardType: TextInputType.number,
-                            decoration: _tarifDecoration("Durée de l'essai gratuit (jours)"),
-                            validator: (value) {
-                              final parsed = int.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) return 'Nombre de jours invalide';
-                              return null;
-                            },
-                          ),
-                        ),
-                      ],
+                          validator: (value) {
+                            final parsed = int.tryParse(value ?? '');
+                            if (parsed == null || parsed <= 0) return 'Nombre de jours invalide';
+                            return null;
+                          },
+                        );
+                        if (constraints.maxWidth < 480) {
+                          return Column(
+                            children: [
+                              montantField,
+                              const SizedBox(height: 16),
+                              essaiField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: montantField),
+                            const SizedBox(width: 16),
+                            Expanded(child: essaiField),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),

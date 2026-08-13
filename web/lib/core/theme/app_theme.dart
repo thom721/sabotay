@@ -177,14 +177,25 @@ class AppTheme {
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
-        border: const OutlineInputBorder(),
+        // Style pos_api (core/theme.dart::AppTheme.light) : fond blanc
+        // (`surface`, pas `surfaceVariant`) avec une bordure fine, coins
+        // arrondis — c'est la bordure qui distingue le champ de la Card qui
+        // le contient, pas un fond teinté.
         filled: true,
-        // surfaceVariant, pas surface : un champ rempli de la même couleur
-        // que la Card/le BottomSheet qui le contient (très fréquent dans
-        // cette app — formulaires en Card ou en showModalBottomSheet) s'y
-        // fond visuellement, ne laissant que le contour fin pour le
-        // distinguer.
-        fillColor: colorScheme.surfaceVariant,
+        fillColor: colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
