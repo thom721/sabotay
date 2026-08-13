@@ -73,10 +73,12 @@ class _CreateCompteSheetState extends ConsumerState<_CreateCompteSheet> {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 560,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        height: MediaQuery.sizeOf(context).height * 0.7,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
             TextFormField(
@@ -110,6 +112,7 @@ class _CreateCompteSheetState extends ConsumerState<_CreateCompteSheet> {
             ),
             const SizedBox(height: 8),
             ],
+          ),
           ),
         ),
       ),

@@ -27,10 +27,15 @@ class _AssignAgentSheet extends ConsumerWidget {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       content: SizedBox(
         width: 560,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        // Hauteur bornée + scroll — une longue liste d'agents ne doit pas
+        // pousser les actions (Annuler) hors de l'écran sur un petit
+        // viewport.
+        height: MediaQuery.sizeOf(context).height * 0.7,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'Choisissez l\'agent qui collectera chez ce client.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -78,7 +83,8 @@ class _AssignAgentSheet extends ConsumerWidget {
                 );
               },
             ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [

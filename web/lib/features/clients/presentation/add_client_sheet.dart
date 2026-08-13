@@ -149,6 +149,10 @@ class _AddClientSheetState extends ConsumerState<_AddClientSheet> {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 560,
+        // Hauteur bornée — sans ça, sur un formulaire long, le contenu (même
+        // scrollable) prend toute la hauteur qu'il veut et pousse les
+        // actions (Annuler/Créer) hors de l'écran sur un petit viewport.
+        height: MediaQuery.sizeOf(context).height * 0.7,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,

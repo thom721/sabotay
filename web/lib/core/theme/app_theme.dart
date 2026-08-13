@@ -124,7 +124,10 @@ class AppTheme {
       background: AppColors.lightBg,
       onBackground: AppColors.lightInk,
     );
-    return _build(colorScheme, scaffoldBg: AppColors.lightBg);
+    // Couleur littérale de pos_api (core/theme.dart::AppColors.divider), pas
+    // colorScheme.outline : ce dernier est teinté chaud (dérivé du seed
+    // gold, #E2D9C5) alors que pos_api utilise un gris neutre.
+    return _build(colorScheme, scaffoldBg: AppColors.lightBg, inputBorderColor: const Color(0xFFE2E8F0));
   }
 
   static ThemeData get dark {
@@ -150,7 +153,12 @@ class AppTheme {
     return _build(colorScheme, scaffoldBg: AppColors.darkBg);
   }
 
-  static ThemeData _build(ColorScheme colorScheme, {required Color scaffoldBg}) {
+  static ThemeData _build(
+    ColorScheme colorScheme, {
+    required Color scaffoldBg,
+    Color? inputBorderColor,
+  }) {
+    final inputBorder = inputBorderColor ?? colorScheme.outline;
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
@@ -185,11 +193,11 @@ class AppTheme {
         fillColor: colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: colorScheme.outline),
+          borderSide: BorderSide(color: inputBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: colorScheme.outline),
+          borderSide: BorderSide(color: inputBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

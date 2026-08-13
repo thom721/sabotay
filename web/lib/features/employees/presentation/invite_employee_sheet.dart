@@ -95,6 +95,7 @@ class _InviteEmployeeSheetState extends ConsumerState<_InviteEmployeeSheet> {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 560,
+        height: MediaQuery.sizeOf(context).height * 0.7,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
