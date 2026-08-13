@@ -5,3 +5,8 @@ __pycache__/
 
 # Artefacts d'exécution locale
 *.log
+
+# Sortie de compilation Nuitka (Epic 5a) — des milliers de fichiers, jamais commités
+dist/
+*.build/
+*.dist/

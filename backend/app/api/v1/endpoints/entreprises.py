@@ -4,13 +4,17 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlmodel import select
+
 from app.core.db import get_session
 from app.core.deps import TenantId, require_roles
 from app.core.security import hash_password
 from app.crud.utilisateur import get_by_telephone_ou_email
 from app.models.abonnement import Abonnement
+from app.models.code_installation import CodeInstallation, generer_code_installation
 from app.models.entreprise import Entreprise
 from app.models.utilisateur import RoleUtilisateur, Utilisateur
+from app.schemas.code_installation import CodeInstallationRead
 from app.schemas.entreprise import EntrepriseProfilUpdate, EntrepriseRead, EntrepriseRegister
 
 router = APIRouter(prefix="/entreprises", tags=["entreprises"])
@@ -49,6 +53,60 @@ async def register_entreprise(
     await session.commit()
     await session.refresh(entreprise)
     return entreprise
+
+
+@router.get(
+    "/code-installation",
+    response_model=CodeInstallationRead,
+    dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
+)
+async def lire_code_installation(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    entreprise_id: TenantId,
+) -> CodeInstallation:
+    """Code d'installation courant (généré à la demande s'il n'existe pas
+    encore) pour lier un poste local au cloud sans email/mot de passe —
+    saisi dans l'assistant d'installation bureau (Epic 5). Une fois utilisé,
+    reste affiché tel quel (`utilise=True`) ; régénérer via POST invalide
+    l'ancien."""
+    statement = select(CodeInstallation).where(
+        CodeInstallation.entreprise_id == entreprise_id, CodeInstallation.utilise == False  # noqa: E712
+    )
+    code = (await session.execute(statement)).scalars().first()
+    if code is None:
+        code = CodeInstallation(
+            entreprise_id=entreprise_id, code=generer_code_installation()
+        )
+        session.add(code)
+        await session.commit()
+        await session.refresh(code)
+    return code
+
+
+@router.post(
+    "/code-installation",
+    response_model=CodeInstallationRead,
+    dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
+)
+async def regenerer_code_installation(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    entreprise_id: TenantId,
+) -> CodeInstallation:
+    """Invalide le(s) code(s) non utilisé(s) existant(s) et en génère un
+    nouveau — les codes déjà consommés (`utilise=True`) restent en base pour
+    l'historique mais ne sont jamais réaffichés/réutilisables."""
+    statement = select(CodeInstallation).where(
+        CodeInstallation.entreprise_id == entreprise_id, CodeInstallation.utilise == False  # noqa: E712
+    )
+    anciens = (await session.execute(statement)).scalars().all()
+    for ancien in anciens:
+        await session.delete(ancien)
+
+    code = CodeInstallation(entreprise_id=entreprise_id, code=generer_code_installation())
+    session.add(code)
+    await session.commit()
+    await session.refresh(code)
+    return code
 
 
 @router.get("/profil", response_model=EntrepriseRead)

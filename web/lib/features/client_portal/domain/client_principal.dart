@@ -5,8 +5,8 @@ import '../../clients/domain/client.dart';
 /// Admin/Manager/Agent) de `features/auth/domain/user.dart`. Réutilise
 /// `StatutClient` déjà défini pour la fiche client côté Admin.
 class ClientPrincipal {
-  final int id;
-  final int entrepriseId;
+  final String id;
+  final String entrepriseId;
   final String nom;
   final String prenom;
   final String? email;
@@ -26,8 +26,8 @@ class ClientPrincipal {
   String get nomComplet => '$prenom $nom'.trim();
 
   factory ClientPrincipal.fromJson(Map<String, dynamic> json) => ClientPrincipal(
-        id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        id: json['id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
         nom: json['nom'] as String,
         prenom: json['prenom'] as String? ?? '',
         email: json['email'] as String?,

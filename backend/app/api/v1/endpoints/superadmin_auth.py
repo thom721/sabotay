@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel, select
 
 from app.core.db import get_session
+from app.core.dt_utils import now_local
 from app.core.security import create_access_token, verify_password
 from app.models.super_admin import SuperAdmin
 from app.schemas.auth import Token
@@ -39,7 +39,7 @@ async def superadmin_login(payload: SuperAdminLoginRequest, session: SessionDep)
     ):
         raise _INVALID_CREDENTIALS_ERROR
 
-    super_admin.derniere_connexion = datetime.now(timezone.utc)
+    super_admin.derniere_connexion = now_local()
     session.add(super_admin)
     await session.commit()
 

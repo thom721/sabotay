@@ -24,12 +24,12 @@ class ClientCompteRepository {
         .toList();
   }
 
-  Future<CompteSolde> getSolde(int compteId) async {
+  Future<CompteSolde> getSolde(String compteId) async {
     final response = await _dio.get('/clients/moi/comptes/$compteId/solde');
     return CompteSolde.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<List<Transaction>> getTransactions(int compteId) async {
+  Future<List<Transaction>> getTransactions(String compteId) async {
     final response = await _dio.get('/clients/moi/comptes/$compteId/transactions');
     return (response.data as List)
         .map((json) => Transaction.fromJson(json as Map<String, dynamic>))

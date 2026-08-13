@@ -9,8 +9,10 @@ from app.api.v1.endpoints import (
     dashboard,
     entreprises,
     password_reset,
+    setup,
     superadmin,
     superadmin_auth,
+    sync,
     transactions,
     utilisateurs,
 )
@@ -29,3 +31,5 @@ api_router.include_router(dashboard.router)
 api_router.include_router(abonnement.router)
 api_router.include_router(superadmin_auth.router)
 api_router.include_router(superadmin.router)
+api_router.include_router(sync.router)
+api_router.include_router(setup.router)

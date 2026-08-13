@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/licence/licence_verifier.dart';
 import '../../../core/network/token_storage.dart';
 import '../data/auth_repository.dart';
 import '../domain/user.dart';
@@ -43,6 +44,7 @@ class AuthController extends AsyncNotifier<User?> {
 
   Future<void> logout() async {
     await ref.read(tokenStorageProvider).clear();
+    await LicenceVerifier.clearCache();
     state = const AsyncData(null);
   }
 

@@ -18,9 +18,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(subject: str, extra_claims: dict[str, Any] | None = None) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+def create_access_token(
+    subject: str,
+    extra_claims: dict[str, Any] | None = None,
+    expires_delta: timedelta | None = None,
+) -> str:
+    expire = datetime.now(timezone.utc) + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode: dict[str, Any] = {"sub": subject, "exp": expire}
     if extra_claims:

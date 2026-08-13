@@ -91,7 +91,7 @@ class _AddClientSheetState extends ConsumerState<_AddClientSheet> {
       if (detail is Map) {
         await _showDuplicateDialog(
           nomExistant: detail['client_existant_nom'] as String,
-          clientExistantId: detail['client_existant_id'] as int,
+          clientExistantId: detail['client_existant_id'] as String,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +114,7 @@ class _AddClientSheetState extends ConsumerState<_AddClientSheet> {
   /// de laisser créer un doublon.
   Future<void> _showDuplicateDialog({
     required String nomExistant,
-    required int clientExistantId,
+    required String clientExistantId,
   }) async {
     if (!mounted) return;
     final creerCompte = await showDialog<bool>(

@@ -1,7 +1,7 @@
 /// Compte super-admin (`/superadmin/comptes`) — jamais de mot de passe côté
 /// client, le backend ne le renvoie pas.
 class SuperAdminCompte {
-  final int id;
+  final String id;
   final String nom;
   final String email;
   final String statut;
@@ -18,7 +18,7 @@ class SuperAdminCompte {
   });
 
   factory SuperAdminCompte.fromJson(Map<String, dynamic> json) => SuperAdminCompte(
-        id: json['id'] as int,
+        id: json['id'] as String,
         nom: json['nom'] as String,
         email: json['email'] as String,
         statut: json['statut'] as String,

@@ -40,15 +40,13 @@ class SuperAdminAuthController extends AsyncNotifier<bool> {
 /// `/superadmin/me`. Utilisé uniquement pour les gardes UI d'auto-protection
 /// (ex. désactiver son propre compte) ; le backend reste la source de
 /// vérité et rejette de toute façon l'action côté serveur.
-final superAdminSelfIdProvider = FutureProvider<int?>((ref) async {
+final superAdminSelfIdProvider = FutureProvider<String?>((ref) async {
   final token = await ref.watch(superAdminTokenStorageProvider).read();
   if (token == null) return null;
   try {
     final claims = JwtDecoder.decode(token);
     final sub = claims['sub'];
-    if (sub is int) return sub;
-    if (sub is String) return int.tryParse(sub);
-    return null;
+    return sub as String?;
   } catch (_) {
     return null;
   }

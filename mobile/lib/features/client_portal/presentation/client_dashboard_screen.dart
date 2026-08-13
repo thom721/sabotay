@@ -113,13 +113,13 @@ class ClientDashboardScreen extends ConsumerWidget {
 
 class _CompteSelecteur extends ConsumerWidget {
   final List<CompteSabotay> comptes;
-  final int selectedId;
+  final String selectedId;
 
   const _CompteSelecteur({required this.comptes, required this.selectedId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DropdownButtonFormField<int>(
+    return DropdownButtonFormField<String>(
       value: selectedId,
       decoration: const InputDecoration(labelText: 'Compte'),
       items: [

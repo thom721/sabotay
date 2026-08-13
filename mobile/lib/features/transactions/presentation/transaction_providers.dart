@@ -4,6 +4,6 @@ import '../data/transaction_repository.dart';
 import '../domain/transaction.dart';
 
 final transactionsForCompteProvider =
-    FutureProvider.family<List<Transaction>, int>((ref, compteId) {
+    FutureProvider.family<List<Transaction>, String>((ref, compteId) {
   return ref.watch(transactionRepositoryProvider).listForCompte(compteId);
 });

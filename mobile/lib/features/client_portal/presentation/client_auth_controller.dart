@@ -44,7 +44,7 @@ class ClientAuthController extends AsyncNotifier<ClientPrincipal?> {
   /// n'accepte que les `client_id` liés au même email que l'identité déjà
   /// authentifiée (vérifié côté backend), ce qui permet de réutiliser le
   /// même flux que `login` (nouveau token → sauvegarde → `fetchMe`).
-  Future<void> switchEntreprise(int clientId) async {
+  Future<void> switchEntreprise(String clientId) async {
     state = const AsyncLoading<ClientPrincipal?>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
       final entrepriseRepository = ref.read(clientEntrepriseRepositoryProvider);

@@ -1,8 +1,8 @@
 /// Une entreprise liée au même email Client que le compte actuellement
 /// connecté — alimente le sélecteur d'entreprise du portail Client.
 class EntrepriseLiee {
-  final int clientId;
-  final int entrepriseId;
+  final String clientId;
+  final String entrepriseId;
   final String entrepriseNom;
   final bool actif;
 
@@ -14,8 +14,8 @@ class EntrepriseLiee {
   });
 
   factory EntrepriseLiee.fromJson(Map<String, dynamic> json) => EntrepriseLiee(
-        clientId: json['client_id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        clientId: json['client_id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
         entrepriseNom: json['entreprise_nom'] as String,
         actif: json['actif'] as bool,
       );

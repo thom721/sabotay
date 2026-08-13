@@ -15,7 +15,7 @@ final _lastLoginFormat = DateFormat('dd/MM/yyyy HH:mm');
 /// Recherche un employé par id dans la liste déjà chargée par
 /// [employeeListControllerProvider] — il n'existe pas d'endpoint backend
 /// `GET /utilisateurs/{id}` dédié, donc la fiche détail réutilise la liste.
-Employee? _findEmployee(List<Employee> employees, int employeeId) {
+Employee? _findEmployee(List<Employee> employees, String employeeId) {
   for (final employee in employees) {
     if (employee.id == employeeId) return employee;
   }
@@ -24,7 +24,7 @@ Employee? _findEmployee(List<Employee> employees, int employeeId) {
 
 /// Fiche détaillée d'un employé, en lecture seule (PRD §8.2).
 class EmployeeDetailScreen extends ConsumerWidget {
-  final int employeeId;
+  final String employeeId;
   const EmployeeDetailScreen({super.key, required this.employeeId});
 
   @override

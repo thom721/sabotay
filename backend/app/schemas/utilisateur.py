@@ -27,8 +27,8 @@ class UtilisateurRoleUpdate(SQLModel):
 
 
 class UtilisateurRead(SQLModel):
-    id: int
-    entreprise_id: int
+    id: str
+    entreprise_id: str
     nom: str
     prenom: str | None
     telephone: str

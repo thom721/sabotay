@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +9,7 @@ import app.crud.compte_sabotay as crud_compte
 import app.crud.transaction as crud_transaction
 from app.core.db import get_session
 from app.core.deps import CurrentClient
+from app.core.dt_utils import now_local
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.client import Client, StatutClient
 from app.models.entreprise import Entreprise
@@ -36,14 +36,14 @@ class ClientLoginRequest(SQLModel):
 
 
 class EntrepriseLieeRead(SQLModel):
-    client_id: int
-    entreprise_id: int
+    client_id: str
+    entreprise_id: str
     entreprise_nom: str
     actif: bool
 
 
 class SwitchEntrepriseRequest(SQLModel):
-    client_id: int
+    client_id: str
 
 
 class ClientMotDePasseUpdate(SQLModel):
@@ -69,7 +69,7 @@ async def client_login(payload: ClientLoginRequest, session: SessionDep) -> Toke
         raise _INVALID_CREDENTIALS_ERROR
     client = matched[0]
 
-    client.derniere_connexion = datetime.now(timezone.utc)
+    client.derniere_connexion = now_local()
     session.add(client)
     await session.commit()
 
@@ -171,7 +171,7 @@ async def switch_entreprise(
             status_code=status.HTTP_403_FORBIDDEN, detail="Compte lié introuvable"
         )
 
-    target.derniere_connexion = datetime.now(timezone.utc)
+    target.derniere_connexion = now_local()
     session.add(target)
     await session.commit()
 
@@ -201,7 +201,7 @@ async def read_entreprise_de_mon_compte(
 
 @moi_router.get("/moi/comptes/{compte_id}/solde", response_model=CompteSabotaySolde)
 async def read_solde_mon_compte(
-    compte_id: int,
+    compte_id: str,
     session: SessionDep,
     current_client: CurrentClient,
 ) -> CompteSabotaySolde:
@@ -218,7 +218,7 @@ async def read_solde_mon_compte(
 
 @moi_router.get("/moi/comptes/{compte_id}/transactions", response_model=list[TransactionRead])
 async def read_transactions_mon_compte(
-    compte_id: int,
+    compte_id: str,
     session: SessionDep,
     current_client: CurrentClient,
 ) -> list[TransactionRead]:

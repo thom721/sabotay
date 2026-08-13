@@ -14,8 +14,8 @@ from app.schemas.transaction import RetraitCreate, TransactionCreate
 async def create(
     session: AsyncSession,
     *,
-    entreprise_id: int,
-    collecte_par_id: int,
+    entreprise_id: str,
+    collecte_par_id: str,
     collecte_par_nom: str,
     data: TransactionCreate,
     compte: CompteSabotay,
@@ -56,8 +56,8 @@ async def create(
 async def create_retrait(
     session: AsyncSession,
     *,
-    entreprise_id: int,
-    collecte_par_id: int,
+    entreprise_id: str,
+    collecte_par_id: str,
     collecte_par_nom: str,
     data: RetraitCreate,
     compte: CompteSabotay,
@@ -142,7 +142,7 @@ async def get_solde(session: AsyncSession, *, compte: CompteSabotay) -> CompteSa
     )
 
 
-async def list_for_compte(session: AsyncSession, *, compte_id: int) -> list[Transaction]:
+async def list_for_compte(session: AsyncSession, *, compte_id: str) -> list[Transaction]:
     statement = (
         select(Transaction)
         .where(Transaction.compte_id == compte_id)
@@ -153,7 +153,7 @@ async def list_for_compte(session: AsyncSession, *, compte_id: int) -> list[Tran
 
 
 async def get_statistiques_mois(
-    session: AsyncSession, *, entreprise_id: int, debut_mois: date
+    session: AsyncSession, *, entreprise_id: str, debut_mois: date
 ) -> tuple[Decimal, int]:
     statement = select(
         func.coalesce(func.sum(Transaction.montant), 0),
@@ -169,7 +169,7 @@ async def get_statistiques_mois(
 
 
 async def get_velocite_journaliere(
-    session: AsyncSession, *, entreprise_id: int, date_debut: date, date_fin: date
+    session: AsyncSession, *, entreprise_id: str, date_debut: date, date_fin: date
 ) -> list[tuple[date, Decimal]]:
     statement = (
         select(Transaction.date, func.coalesce(func.sum(Transaction.montant), 0))
@@ -187,7 +187,7 @@ async def get_velocite_journaliere(
 
 
 async def list_recent_for_tenant(
-    session: AsyncSession, *, entreprise_id: int, limit: int = 10
+    session: AsyncSession, *, entreprise_id: str, limit: int = 10
 ) -> list[Transaction]:
     statement = (
         select(Transaction)
@@ -202,10 +202,10 @@ async def list_recent_for_tenant(
 async def list_for_periode(
     session: AsyncSession,
     *,
-    entreprise_id: int,
+    entreprise_id: str,
     date_debut: date,
     date_fin: date,
-    collecte_par_id: int | None = None,
+    collecte_par_id: str | None = None,
 ) -> list[Transaction]:
     """Transactions d'une période pour le rapport de collecte (§8.7 PRD) —
     filtré sur un agent précis quand fourni (un Agent ne voit que les

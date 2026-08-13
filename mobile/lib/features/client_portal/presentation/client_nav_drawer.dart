@@ -125,7 +125,7 @@ class _EntrepriseSelecteur extends ConsumerWidget {
         );
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: DropdownButtonFormField<int>(
+          child: DropdownButtonFormField<String>(
             value: actif.clientId,
             decoration: const InputDecoration(labelText: 'Entreprise'),
             items: [

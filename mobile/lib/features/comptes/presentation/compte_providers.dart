@@ -4,10 +4,10 @@ import '../data/compte_repository.dart';
 import '../domain/compte_sabotay.dart';
 
 final comptesForClientProvider =
-    FutureProvider.family<List<CompteSabotay>, int>((ref, clientId) {
+    FutureProvider.family<List<CompteSabotay>, String>((ref, clientId) {
   return ref.watch(compteRepositoryProvider).listForClient(clientId);
 });
 
-final compteSoldeProvider = FutureProvider.family<CompteSolde, int>((ref, compteId) {
+final compteSoldeProvider = FutureProvider.family<CompteSolde, String>((ref, compteId) {
   return ref.watch(compteRepositoryProvider).getSolde(compteId);
 });

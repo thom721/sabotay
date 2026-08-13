@@ -33,7 +33,7 @@ class AdminClientsScreen extends ConsumerWidget {
 
     // Nom de l'agent assigné, résolu depuis la liste des employés déjà en
     // mémoire — évite un appel réseau par client.
-    String agentName(int? agentId) {
+    String agentName(String? agentId) {
       if (agentId == null) return 'Non assigné';
       final employee = employeesAsync.valueOrNull?.where((e) => e.id == agentId).firstOrNull;
       return employee?.nom ?? 'Non assigné';

@@ -11,7 +11,7 @@ String statutAbonnementLabel(String statut) => switch (statut) {
 /// MonCash). `statut` : "essai" | "actif" | "suspendu" | "annule".
 class Abonnement {
   final int id;
-  final int entrepriseId;
+  final String entrepriseId;
   final String plan;
   final String statut;
   final num montant;
@@ -34,7 +34,7 @@ class Abonnement {
 
   factory Abonnement.fromJson(Map<String, dynamic> json) => Abonnement(
         id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        entrepriseId: json['entreprise_id'] as String,
         plan: json['plan'] as String,
         statut: json['statut'] as String,
         // Le backend sérialise les montants Decimal en chaînes (ex. "100.00").

@@ -179,7 +179,12 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(),
         filled: true,
-        fillColor: colorScheme.surface,
+        // surfaceVariant, pas surface : un champ rempli de la même couleur
+        // que la Card/le BottomSheet qui le contient (très fréquent dans
+        // cette app — formulaires en Card ou en showModalBottomSheet) s'y
+        // fond visuellement, ne laissant que le contour fin pour le
+        // distinguer.
+        fillColor: colorScheme.surfaceVariant,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

@@ -31,7 +31,7 @@ class SuperAdminRepository {
         .toList();
   }
 
-  Future<EntrepriseDetail> fetchEntrepriseDetail(int id) async {
+  Future<EntrepriseDetail> fetchEntrepriseDetail(String id) async {
     final response = await _dio.get('/superadmin/entreprises/$id');
     return EntrepriseDetail.fromJson(response.data as Map<String, dynamic>);
   }
@@ -60,7 +60,7 @@ class SuperAdminRepository {
     return SuperAdminCompte.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<SuperAdminCompte> updateCompteStatut(int id, String statut) async {
+  Future<SuperAdminCompte> updateCompteStatut(String id, String statut) async {
     final response = await _dio.patch(
       '/superadmin/comptes/$id/statut',
       data: {'statut': statut},

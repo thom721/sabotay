@@ -9,7 +9,7 @@ import 'superadmin_auth_controller.dart';
 import 'superadmin_scaffold.dart';
 
 final superAdminEntrepriseDetailProvider =
-    FutureProvider.family<EntrepriseDetail, int>((ref, id) {
+    FutureProvider.family<EntrepriseDetail, String>((ref, id) {
   return ref.watch(superAdminRepositoryProvider).fetchEntrepriseDetail(id);
 });
 
@@ -17,7 +17,7 @@ final superAdminEntrepriseDetailProvider =
 /// générales, abonnement, puis liste intégrale des utilisateurs et des
 /// clients. Vue de diagnostic en lecture seule — pas d'édition ici.
 class SuperAdminEntrepriseDetailScreen extends ConsumerStatefulWidget {
-  final int entrepriseId;
+  final String entrepriseId;
 
   const SuperAdminEntrepriseDetailScreen({super.key, required this.entrepriseId});
 

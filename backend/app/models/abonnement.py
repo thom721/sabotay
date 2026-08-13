@@ -1,7 +1,10 @@
-from datetime import date, datetime, timezone
+import uuid
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
+
+from app.core.dt_utils import now_local
 
 
 class PlanAbonnement(StrEnum):
@@ -20,13 +23,13 @@ class StatutAbonnement(StrEnum):
 class Abonnement(SQLModel, table=True):
     __tablename__ = "abonnements"
 
-    id: int | None = Field(default=None, primary_key=True)
-    entreprise_id: int = Field(foreign_key="entreprises.id", unique=True, index=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    entreprise_id: str = Field(foreign_key="entreprises.id", unique=True, index=True)
     plan: PlanAbonnement = Field(default=PlanAbonnement.STARTER)
     date_debut: date
     date_renouvellement: date | None = Field(default=None)
     statut: StatutAbonnement = Field(default=StatutAbonnement.ESSAI)
-    date_creation: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    date_creation: datetime = Field(default_factory=now_local)
     montant: int = Field(default=100)
     moncash_order_id: str | None = Field(default=None)
     moncash_transaction_id: str | None = Field(default=None)

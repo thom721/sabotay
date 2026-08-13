@@ -12,8 +12,8 @@ String roleLabel(RoleUtilisateur role) => switch (role) {
     };
 
 class User {
-  final int id;
-  final int entrepriseId;
+  final String id;
+  final String entrepriseId;
   final String nom;
   final String telephone;
   final String? email;
@@ -31,8 +31,8 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-        id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        id: json['id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
         nom: json['nom'] as String,
         telephone: json['telephone'] as String,
         email: json['email'] as String?,

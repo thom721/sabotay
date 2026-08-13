@@ -13,7 +13,7 @@ class ClientCreate(SQLModel):
     date_naissance: date | None = None
     nif_cin: str | None = None
     photo_url: str | None = None
-    agent_assigne_id: int | None = None
+    agent_assigne_id: str | None = None
     email: str | None = None
     heritier_nom: str | None = None
     heritier_prenom: str | None = None
@@ -22,12 +22,12 @@ class ClientCreate(SQLModel):
 
 
 class ClientAssignAgent(SQLModel):
-    agent_assigne_id: int | None
+    agent_assigne_id: str | None
 
 
 class ClientRead(SQLModel):
-    id: int
-    entreprise_id: int
+    id: str
+    entreprise_id: str
     nom: str
     prenom: str
     telephone: str
@@ -35,7 +35,7 @@ class ClientRead(SQLModel):
     date_naissance: date | None
     nif_cin: str | None
     photo_url: str | None
-    agent_assigne_id: int | None
+    agent_assigne_id: str | None
     email: str | None
     doit_changer_mot_de_passe: bool
     heritier_nom: str | None

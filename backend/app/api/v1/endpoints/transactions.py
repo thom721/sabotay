@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Annotated
 
@@ -10,6 +10,7 @@ import app.crud.platform_config as crud_platform_config
 import app.crud.transaction as crud_transaction
 from app.core.db import get_session
 from app.core.deps import CurrentUser, TenantId, require_roles
+from app.core.dt_utils import now_local
 from app.models.abonnement import Abonnement, StatutAbonnement
 from app.models.entreprise import Entreprise
 from app.models.transaction import TypeTransaction
@@ -31,7 +32,7 @@ _ROLES_COLLECTE = Depends(
 )
 
 
-async def _abonnement_actif(session: SessionDep, entreprise_id: int) -> bool:
+async def _abonnement_actif(session: SessionDep, entreprise_id: str) -> bool:
     """Vérifie que l'abonnement du tenant est ACTIF et non expiré, ou que
     l'entreprise est encore dans sa période d'essai gratuit configurable
     (PRD §8.5, `platform_config.essai_jours`, décomptée depuis
@@ -48,12 +49,12 @@ async def _abonnement_actif(session: SessionDep, entreprise_id: int) -> bool:
         entreprise = await session.get(Entreprise, entreprise_id)
         essai_jours = (await crud_platform_config.get(session)).essai_jours
         limite_essai = entreprise.date_creation + timedelta(days=essai_jours)
-        return datetime.now(timezone.utc) <= limite_essai
+        return now_local() <= limite_essai
     if abonnement.statut != StatutAbonnement.ACTIF:
         return False
     if abonnement.date_renouvellement is None:
         return True
-    return abonnement.date_renouvellement >= datetime.now(timezone.utc).date()
+    return abonnement.date_renouvellement >= now_local().date()
 
 
 @router.post(
@@ -138,7 +139,7 @@ async def create_retrait(
 
 @router.get("/comptes/{compte_id}/transactions", response_model=list[TransactionRead])
 async def list_transactions_for_compte(
-    compte_id: int, session: SessionDep, entreprise_id: TenantId
+    compte_id: str, session: SessionDep, entreprise_id: TenantId
 ) -> list[TransactionRead]:
     compte = await crud_compte.get_for_tenant(
         session, compte_id=compte_id, entreprise_id=entreprise_id

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../comptes/domain/compte_sabotay.dart';
 import '../../comptes/presentation/compte_providers.dart';
 import '../data/transaction_repository.dart';
+import '../domain/collecte_result.dart';
 import '../domain/transaction.dart';
 import 'recu_pdf.dart';
 import 'transaction_providers.dart';
@@ -48,6 +49,7 @@ class _AddCollecteSheetState extends ConsumerState<_AddCollecteSheet> {
   DateTime _date = DateTime.now();
   bool _isSaving = false;
   Transaction? _transactionEnregistree;
+  CollecteQueued? _collecteEnAttente;
 
   num get _montant => widget.compte.montantJournalier * _nbJours;
 
@@ -64,20 +66,29 @@ class _AddCollecteSheetState extends ConsumerState<_AddCollecteSheet> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      final transaction = await ref.read(transactionRepositoryProvider).create(
+      final result = await ref.read(transactionRepositoryProvider).create(
             compteId: widget.compte.id,
             date: _date,
             nbJours: _nbJours,
+            montant: _montant,
           );
-      ref.invalidate(compteSoldeProvider(widget.compte.id));
-      ref.invalidate(transactionsForCompteProvider(widget.compte.id));
+      if (result is CollecteSuccess) {
+        ref.invalidate(compteSoldeProvider(widget.compte.id));
+        ref.invalidate(transactionsForCompteProvider(widget.compte.id));
+      }
       if (mounted) {
-        // On garde la feuille ouverte pour proposer l'impression du reçu :
-        // une fois fermée, le context de la feuille n'est plus valable pour
-        // afficher une éventuelle erreur d'impression.
+        // On garde la feuille ouverte pour proposer l'impression du reçu
+        // (ou afficher l'état "en attente") : une fois fermée, le context
+        // de la feuille n'est plus valable pour afficher une éventuelle
+        // erreur d'impression.
         setState(() {
           _isSaving = false;
-          _transactionEnregistree = transaction;
+          switch (result) {
+            case CollecteSuccess(:final transaction):
+              _transactionEnregistree = transaction;
+            case CollecteQueued():
+              _collecteEnAttente = result;
+          }
         });
       }
     } on SubscriptionRequiredException {
@@ -103,6 +114,7 @@ class _AddCollecteSheetState extends ConsumerState<_AddCollecteSheet> {
   @override
   Widget build(BuildContext context) {
     final transaction = _transactionEnregistree;
+    final collecteEnAttente = _collecteEnAttente;
     final soldeAsync = ref.watch(compteSoldeProvider(widget.compte.id));
 
     return Padding(
@@ -118,7 +130,9 @@ class _AddCollecteSheetState extends ConsumerState<_AddCollecteSheet> {
               compte: widget.compte,
               clientNom: widget.clientNom ?? '',
             )
-          : switch (_step) {
+          : collecteEnAttente != null
+              ? _CollecteEnQueueView(resultat: collecteEnAttente)
+              : switch (_step) {
               0 => _FormulaireStep(
                   compte: widget.compte,
                   nbJours: _nbJours,
@@ -424,6 +438,67 @@ class _CollecteEnregistreeView extends ConsumerWidget {
           label: const Text('Imprimer le reçu'),
         ),
         const SizedBox(height: 12),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Terminer'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Collecte saisie mais pas encore confirmée par le serveur (réseau
+/// indisponible au moment de l'envoi) — mise en file, sera rejouée
+/// automatiquement dès que la connexion revient (voir
+/// `offline_drain_controller.dart`). Volontairement distincte de
+/// [_CollecteEnregistreeView] : pas de bouton d'impression de reçu, le
+/// montant affiché n'est pas encore garanti par le serveur.
+class _CollecteEnQueueView extends StatelessWidget {
+  final CollecteQueued resultat;
+
+  const _CollecteEnQueueView({required this.resultat});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.cloud_off, color: Colors.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Collecte enregistrée localement',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Pas de connexion — sera synchronisée automatiquement dès que le '
+          'réseau revient.',
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              _ConfirmRow('Jours payés', '${resultat.nbJours}'),
+              _ConfirmRow('Montant', '${_confirmAmountFormat.format(resultat.montant)} HTG'),
+              _ConfirmRow('Date', _confirmDateFormat.format(resultat.date)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Terminer'),

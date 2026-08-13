@@ -1,3 +1,5 @@
+import uuid
+
 from sqlmodel import Field, SQLModel
 
 
@@ -7,7 +9,7 @@ class PlatformConfig(SQLModel, table=True):
 
     __tablename__ = "platform_config"
 
-    id: int | None = Field(default=None, primary_key=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     abonnement_montant_htg: int = Field(default=100)
     # Durée de la période d'essai gratuit (PRD §8.5), en jours à partir de
     # `Entreprise.date_creation` — voir `_abonnement_actif` (transactions.py).

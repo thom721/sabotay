@@ -12,7 +12,7 @@ from app.schemas.compte_sabotay import CompteSabotayCreate
 _MAX_TENTATIVES_NUMERO = 5
 
 
-async def _prochain_rang(session: AsyncSession, *, entreprise_id: int) -> int:
+async def _prochain_rang(session: AsyncSession, *, entreprise_id: str) -> int:
     # MAX(rang) plutôt que COUNT(*) : un compte supprimé ne fait pas régresser
     # le rang, ce qui éviterait de régénérer un numéro déjà attribué.
     result = await session.execute(
@@ -27,7 +27,7 @@ async def _prochain_rang(session: AsyncSession, *, entreprise_id: int) -> int:
 
 
 async def create(
-    session: AsyncSession, *, entreprise_id: int, data: CompteSabotayCreate
+    session: AsyncSession, *, entreprise_id: str, data: CompteSabotayCreate
 ) -> CompteSabotay:
     date_fin_prevue = data.date_debut + timedelta(days=data.duree_jours)
     montant_total_attendu = data.montant_journalier * Decimal(data.duree_jours)
@@ -63,7 +63,7 @@ async def create(
 
 
 async def get_for_tenant(
-    session: AsyncSession, *, compte_id: int, entreprise_id: int
+    session: AsyncSession, *, compte_id: str, entreprise_id: str
 ) -> CompteSabotay | None:
     statement = select(CompteSabotay).where(
         CompteSabotay.id == compte_id, CompteSabotay.entreprise_id == entreprise_id
@@ -73,7 +73,7 @@ async def get_for_tenant(
 
 
 async def get_by_numero(
-    session: AsyncSession, *, numero_compte: str, entreprise_id: int
+    session: AsyncSession, *, numero_compte: str, entreprise_id: str
 ) -> CompteSabotay | None:
     statement = select(CompteSabotay).where(
         CompteSabotay.numero_compte == numero_compte,
@@ -84,7 +84,7 @@ async def get_by_numero(
 
 
 async def list_for_client(
-    session: AsyncSession, *, client_id: int, entreprise_id: int
+    session: AsyncSession, *, client_id: str, entreprise_id: str
 ) -> list[CompteSabotay]:
     statement = select(CompteSabotay).where(
         CompteSabotay.client_id == client_id,
@@ -95,7 +95,7 @@ async def list_for_client(
 
 
 async def get_for_client(
-    session: AsyncSession, *, compte_id: int, client_id: int, entreprise_id: int
+    session: AsyncSession, *, compte_id: str, client_id: str, entreprise_id: str
 ) -> CompteSabotay | None:
     """Vérifie qu'un compte appartient bien au client authentifié avant de
     lui exposer son solde/historique (portail libre-service, PRD §8.8)."""

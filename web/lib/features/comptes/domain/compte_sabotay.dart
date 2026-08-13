@@ -18,9 +18,9 @@ String statutCompteLabel(StatutCompte s) => switch (s) {
     };
 
 class CompteSabotay {
-  final int id;
-  final int entrepriseId;
-  final int clientId;
+  final String id;
+  final String entrepriseId;
+  final String clientId;
   final String numeroCompte;
   final num montantJournalier;
   final DateTime dateDebut;
@@ -43,9 +43,9 @@ class CompteSabotay {
   });
 
   factory CompteSabotay.fromJson(Map<String, dynamic> json) => CompteSabotay(
-        id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
-        clientId: json['client_id'] as int,
+        id: json['id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
+        clientId: json['client_id'] as String,
         numeroCompte: json['numero_compte'] as String,
         // Le backend sérialise les montants Decimal en chaînes (ex. "250.00").
         montantJournalier: num.parse(json['montant_journalier'].toString()),
@@ -58,7 +58,7 @@ class CompteSabotay {
 }
 
 class CompteSolde {
-  final int compteId;
+  final String compteId;
   final num montantTotalAttendu;
   final num montantCollecte;
   final num montantRetire;
@@ -79,7 +79,7 @@ class CompteSolde {
   });
 
   factory CompteSolde.fromJson(Map<String, dynamic> json) => CompteSolde(
-        compteId: json['compte_id'] as int,
+        compteId: json['compte_id'] as String,
         montantTotalAttendu: num.parse(json['montant_total_attendu'].toString()),
         montantCollecte: num.parse(json['montant_collecte'].toString()),
         montantRetire: num.parse(json['montant_retire'].toString()),

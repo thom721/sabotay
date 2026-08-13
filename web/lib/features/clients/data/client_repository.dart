@@ -22,7 +22,7 @@ class ClientRepository {
         .toList();
   }
 
-  Future<Client> getOne(int id) async {
+  Future<Client> getOne(String id) async {
     final response = await _dio.get('/clients/$id');
     return Client.fromJson(response.data as Map<String, dynamic>);
   }
@@ -39,7 +39,7 @@ class ClientRepository {
     String? heritierPrenom,
     String? heritierAdresse,
     String? heritierTelephone,
-    int? agentAssigneId,
+    String? agentAssigneId,
   }) async {
     final response = await _dio.post(
       '/clients',
@@ -67,7 +67,7 @@ class ClientRepository {
 
   /// Assigne/réassigne un client à un agent (PRD §8.2). `agentId: null`
   /// retire l'assignation.
-  Future<Client> assignAgent(int clientId, int? agentId) async {
+  Future<Client> assignAgent(String clientId, String? agentId) async {
     final response = await _dio.patch(
       '/clients/$clientId/agent',
       data: {'agent_assigne_id': agentId},

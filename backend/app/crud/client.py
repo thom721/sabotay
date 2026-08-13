@@ -11,7 +11,7 @@ from app.models.client import Client
 async def find_duplicate(
     session: AsyncSession,
     *,
-    entreprise_id: int,
+    entreprise_id: str,
     nom: str,
     prenom: str,
     date_naissance: date | None,
@@ -42,7 +42,7 @@ async def find_duplicate(
     return None
 
 
-async def create(session: AsyncSession, *, entreprise_id: int, data: dict) -> Client:
+async def create(session: AsyncSession, *, entreprise_id: str, data: dict) -> Client:
     client = Client(entreprise_id=entreprise_id, **data)
 
     temp_password: str | None = None
@@ -68,7 +68,7 @@ async def create(session: AsyncSession, *, entreprise_id: int, data: dict) -> Cl
 
 
 async def list_for_tenant(
-    session: AsyncSession, *, entreprise_id: int, agent_id: int | None = None
+    session: AsyncSession, *, entreprise_id: str, agent_id: str | None = None
 ) -> list[Client]:
     statement = select(Client).where(Client.entreprise_id == entreprise_id)
     if agent_id is not None:
@@ -78,7 +78,7 @@ async def list_for_tenant(
 
 
 async def get_for_tenant(
-    session: AsyncSession, *, client_id: int, entreprise_id: int
+    session: AsyncSession, *, client_id: str, entreprise_id: str
 ) -> Client | None:
     statement = select(Client).where(
         Client.id == client_id, Client.entreprise_id == entreprise_id
@@ -94,7 +94,7 @@ async def list_by_email(session: AsyncSession, *, email: str) -> list[Client]:
 
 
 async def assign_agent(
-    session: AsyncSession, *, client: Client, agent_assigne_id: int | None
+    session: AsyncSession, *, client: Client, agent_assigne_id: str | None
 ) -> Client:
     client.agent_assigne_id = agent_assigne_id
     session.add(client)

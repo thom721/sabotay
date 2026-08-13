@@ -176,7 +176,7 @@ class AppTheme {
           color: colorScheme.onSurface,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: colorScheme.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -187,7 +187,11 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
-        fillColor: colorScheme.surface,
+        // surfaceVariant, pas surface : un champ rempli de la même couleur
+        // que la Card/le BottomSheet qui le contient (formulaires en
+        // showModalBottomSheet, très fréquent côté mobile) s'y fond
+        // visuellement, ne laissant que le contour fin pour le distinguer.
+        fillColor: colorScheme.surfaceVariant,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

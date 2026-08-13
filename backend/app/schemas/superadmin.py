@@ -16,7 +16,7 @@ class AbonnementSuperAdminRead(SQLModel):
 
 
 class EntrepriseSuperAdminRead(SQLModel):
-    id: int
+    id: str
     nom: str
     devise: str
     statut: str
@@ -27,7 +27,7 @@ class EntrepriseSuperAdminRead(SQLModel):
 
 
 class UtilisateurSuperAdminRead(SQLModel):
-    id: int
+    id: str
     nom: str
     prenom: str | None
     email: str | None
@@ -37,7 +37,7 @@ class UtilisateurSuperAdminRead(SQLModel):
 
 
 class ClientSuperAdminRead(SQLModel):
-    id: int
+    id: str
     nom: str
     prenom: str
     telephone: str
@@ -61,7 +61,7 @@ class StatistiquesSuperAdminRead(SQLModel):
 
 
 class SuperAdminCompteRead(SQLModel):
-    id: int
+    id: str
     nom: str
     email: str
     statut: str

@@ -4,9 +4,11 @@ from app.models.client import Client, StatutClient
 from app.models.compte_sabotay import CompteSabotay, StatutCompte
 from app.models.transaction import Transaction, TypeTransaction
 from app.models.abonnement import Abonnement, PlanAbonnement, StatutAbonnement
+from app.models.paiement_abonnement import PaiementAbonnement
 from app.models.password_reset_token import CanalReset, PasswordResetToken
 from app.models.super_admin import SuperAdmin
 from app.models.platform_config import PlatformConfig
+from app.models.sync_state import SyncState
 
 __all__ = [
     "Entreprise",
@@ -23,8 +25,10 @@ __all__ = [
     "Abonnement",
     "PlanAbonnement",
     "StatutAbonnement",
+    "PaiementAbonnement",
     "PasswordResetToken",
     "CanalReset",
     "SuperAdmin",
     "PlatformConfig",
+    "SyncState",
 ]

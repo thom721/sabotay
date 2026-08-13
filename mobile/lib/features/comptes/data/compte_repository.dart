@@ -13,14 +13,14 @@ class CompteRepository {
 
   CompteRepository(this._dio);
 
-  Future<List<CompteSabotay>> listForClient(int clientId) async {
+  Future<List<CompteSabotay>> listForClient(String clientId) async {
     final response = await _dio.get('/clients/$clientId/comptes');
     return (response.data as List)
         .map((json) => CompteSabotay.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
-  Future<CompteSolde> getSolde(int compteId) async {
+  Future<CompteSolde> getSolde(String compteId) async {
     final response = await _dio.get('/comptes/$compteId/solde');
     return CompteSolde.fromJson(response.data as Map<String, dynamic>);
   }

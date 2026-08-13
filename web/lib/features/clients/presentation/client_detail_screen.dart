@@ -19,7 +19,7 @@ final _montantFormat = NumberFormat('#,##0.##');
 /// Fiche détaillée d'un client : infos de contact et comptes Sabotay
 /// associés, avec création d'un nouveau compte (PRD §8.4).
 class ClientDetailScreen extends ConsumerWidget {
-  final int clientId;
+  final String clientId;
   const ClientDetailScreen({super.key, required this.clientId});
 
   @override

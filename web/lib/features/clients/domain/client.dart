@@ -6,8 +6,8 @@ StatutClient statutClientFromString(String value) => StatutClient.values.firstWh
     );
 
 class Client {
-  final int id;
-  final int entrepriseId;
+  final String id;
+  final String entrepriseId;
   final String nom;
   final String prenom;
   final String telephone;
@@ -21,7 +21,7 @@ class Client {
   final String? heritierAdresse;
   final String? heritierTelephone;
   final String? photoUrl;
-  final int? agentAssigneId;
+  final String? agentAssigneId;
   final StatutClient statut;
   final DateTime? derniereConnexion;
 
@@ -57,8 +57,8 @@ class Client {
       (heritierTelephone != null && heritierTelephone!.isNotEmpty);
 
   factory Client.fromJson(Map<String, dynamic> json) => Client(
-        id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        id: json['id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
         nom: json['nom'] as String,
         prenom: json['prenom'] as String? ?? '',
         telephone: json['telephone'] as String,
@@ -74,7 +74,7 @@ class Client {
         heritierAdresse: json['heritier_adresse'] as String?,
         heritierTelephone: json['heritier_telephone'] as String?,
         photoUrl: json['photo_url'] as String?,
-        agentAssigneId: json['agent_assigne_id'] as int?,
+        agentAssigneId: json['agent_assigne_id'] as String?,
         statut: statutClientFromString(json['statut'] as String),
         derniereConnexion: json['derniere_connexion'] == null
             ? null

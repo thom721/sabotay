@@ -1,0 +1,408 @@
+name: Build SabotayPro Desktop
+
+# Déclencher manuellement OU automatiquement sur chaque tag "v*"
+# Exemple : git tag v1.0.0 && git push origin v1.0.0
+#
+# Calqué sur le pipeline de pos_api (voir /development/pos_api/.github/workflows/build.yml)
+# — Nuitka pour le backend, Inno Setup + même certificat de signature pour
+# l'installeur Windows, miroir public infini-software/sabotay. Scope réduit à
+# Windows + macOS (décision explicite, voir EPICS.md Epic 5) : pas de job
+# Linux, pas de notarization macOS (comme pos_api).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (ex: 1.0.0)'
+        required: true
+        default: '1.0.0'
+      cloud_url:
+        description: >-
+          URL du cloud figée dans le binaire desktop (assistant "Connecter au
+          cloud", Epic 5f) — jamais modifiable par le client final.
+        required: false
+        default: 'https://sabotaypro.com'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  FLUTTER_VERSION: '3.44.2'
+
+jobs:
+
+  # ── Version partagée ────────────────────────────────────────────────────────
+  determine-version:
+    name: 🔢 Déterminer la version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      build_number: ${{ github.run_number }}
+    steps:
+      - id: v
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version || '1.0.0' }}" >> $GITHUB_OUTPUT
+          fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND  —  Nuitka standalone (voir backend/server_main.py)
+# ══════════════════════════════════════════════════════════════════════════════
+
+  backend-windows:
+    name: 🖥 Backend — Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        shell: pwsh
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka ordered-set
+
+      - name: Compiler avec Nuitka
+        working-directory: backend
+        shell: pwsh
+        run: |
+          python -m nuitka `
+            --standalone `
+            --assume-yes-for-downloads `
+            --include-package=app `
+            --include-package-data=app `
+            --include-package=alembic `
+            --include-package-data=alembic `
+            --include-package=tzdata `
+            --include-package-data=tzdata `
+            --include-data-files=alembic.ini=alembic.ini `
+            --include-data-dir=alembic=alembic `
+            --output-dir=dist `
+            --output-filename=sabotaypro-server `
+            server_main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-windows
+          path: backend/dist/server_main.dist/
+
+  backend-macos:
+    name: 🍎 Backend — macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka ordered-set
+
+      - name: Compiler avec Nuitka
+        working-directory: backend
+        run: |
+          python -m nuitka \
+            --standalone \
+            --assume-yes-for-downloads \
+            --include-package=app \
+            --include-package-data=app \
+            --include-package=alembic \
+            --include-package-data=alembic \
+            --include-package=tzdata \
+            --include-package-data=tzdata \
+            --include-data-files=alembic.ini=alembic.ini \
+            --include-data-dir=alembic=alembic \
+            --output-dir=dist \
+            --output-filename=sabotaypro-server \
+            server_main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-macos
+          path: backend/dist/server_main.dist/
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  FRONTEND  —  Flutter desktop (web/)
+# ══════════════════════════════════════════════════════════════════════════════
+
+  frontend-windows:
+    name: 🖥 Frontend — Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        working-directory: web
+        run: flutter pub get
+
+      - name: Build Windows
+        working-directory: web
+        shell: pwsh
+        run: |
+          $cloudUrl = "${{ github.event.inputs.cloud_url }}"
+          if ([string]::IsNullOrEmpty($cloudUrl)) { $cloudUrl = "https://sabotaypro.com" }
+          flutter build windows --release --dart-define=CLOUD_URL=$cloudUrl
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-windows
+          path: web/build/windows/x64/runner/Release/
+
+  frontend-macos:
+    name: 🍎 Frontend — macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        working-directory: web
+        run: flutter pub get
+
+      - name: Build macOS
+        working-directory: web
+        run: |
+          CLOUD_URL="${{ github.event.inputs.cloud_url }}"
+          CLOUD_URL="${CLOUD_URL:-https://sabotaypro.com}"
+          flutter build macos --release --dart-define=CLOUD_URL="$CLOUD_URL"
+
+      - name: Archiver le bundle .app
+        working-directory: web/build/macos/Build/Products/Release
+        run: |
+          APP=$(ls -d *.app)
+          tar -czf sabotaypro-macos-app.tar.gz "$APP"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-macos
+          path: web/build/macos/Build/Products/Release/sabotaypro-macos-app.tar.gz
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  INSTALLEUR WINDOWS  —  Inno Setup, signé (même certificat que pos_api)
+# ══════════════════════════════════════════════════════════════════════════════
+
+  inno-setup:
+    name: 🏗 Windows Installer (Inno Setup)
+    runs-on: windows-latest
+    needs: [backend-windows, frontend-windows, determine-version]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Télécharger backend-windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-windows
+          path: certificat/backend-windows/
+
+      - name: Télécharger frontend-windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-windows
+          path: certificat/frontend-windows/
+
+      - name: Préparer la signature (certificat + script sign.cmd)
+        shell: pwsh
+        env:
+          PFX_B64: ${{ secrets.WIN_CODESIGN_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WIN_CODESIGN_PFX_PASSWORD }}
+        run: |
+          $bytes = [Convert]::FromBase64String($env:PFX_B64)
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\sabotaypro-codesign.pfx", $bytes)
+
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+              Where-Object { $_.FullName -like "*x64*" } | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe introuvable sur ce runner" }
+
+          # Même mécanisme que pos_api (voir pos-server.iss/build.yml) :
+          # CryptAcquireContext échoue sur les runners Windows sans passer
+          # par Import-PfxCertificate+/sha1, et sign.cmd écrit sur disque
+          # évite le splitting d'arguments PowerShell dans /SSignTool=...
+          $securePass = ConvertTo-SecureString -String $env:PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath "$env:RUNNER_TEMP\sabotaypro-codesign.pfx" `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $securePass -Exportable
+          $thumbprint = $cert.Thumbprint
+          Write-Host "Certificat importé dans Cert:\CurrentUser\My — thumbprint $thumbprint"
+          "THUMBPRINT=$thumbprint" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          @"
+          @echo off
+          "$signtool" sign /fd SHA256 /sha1 $thumbprint /tr http://timestamp.digicert.com /td SHA256 %1
+          "@ | Set-Content -Path "$env:RUNNER_TEMP\sign.cmd" -Encoding UTF8NoBOM
+
+      - name: Compiler l'installeur Inno Setup (signé)
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          $ver  = "${{ needs.determine-version.outputs.version }}"
+          Write-Host "Compilation + signature Inno Setup v$ver"
+          & $iscc "/DMyAppVersion=$ver" "/SSabotayProSignTool=$env:RUNNER_TEMP\sign.cmd `$f" "certificat\sabotaypro-desktop.iss"
+          $exitCode = $LASTEXITCODE
+          Remove-Item "$env:RUNNER_TEMP\sign.cmd" -Force -ErrorAction SilentlyContinue
+          Remove-Item "$env:RUNNER_TEMP\sabotaypro-codesign.pfx" -Force -ErrorAction SilentlyContinue
+          Remove-Item "Cert:\CurrentUser\My\$env:THUMBPRINT" -DeleteKey -Force -ErrorAction SilentlyContinue
+          if ($exitCode -ne 0) { throw "Inno Setup ISCC.exe a échoué (code $exitCode)" }
+
+      - name: Upload installeur Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: certificat/SabotayPro-Setup.exe
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  RELEASE  —  Assembler et publier
+# ══════════════════════════════════════════════════════════════════════════════
+
+  release:
+    name: 📦 Créer la Release
+    needs:
+      - determine-version
+      - backend-windows
+      - backend-macos
+      - frontend-windows
+      - frontend-macos
+      - inno-setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Télécharger tous les artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Assembler Windows (zip backend+frontend, brut)
+        run: |
+          mkdir -p packages/windows
+          cp -r artifacts/backend-windows/* packages/windows/
+          cp -r artifacts/frontend-windows/* packages/windows/
+          cd packages
+          zip -r sabotaypro-windows-${{ needs.determine-version.outputs.version }}.zip windows/
+
+      # Zippé plutôt que distribué en .exe brut — un .exe téléchargé porte le
+      # Mark of the Web et déclenche SmartScreen à l'exécution (même
+      # raisonnement que pos_api, gain partiel/dépendant de l'outil
+      # d'extraction utilisé par la personne qui télécharge).
+      - name: Zipper l'installeur Windows
+        run: |
+          if [ -f artifacts/windows-installer/SabotayPro-Setup.exe ]; then
+            cd artifacts/windows-installer
+            zip ../../packages/SabotayPro-Setup.zip SabotayPro-Setup.exe
+            cd -
+          else
+            echo "Avertissement : aucun EXE Inno Setup trouvé"
+          fi
+
+      - name: Assembler macOS (tar.gz)
+        run: |
+          mkdir -p packages/macos
+          cp -r artifacts/backend-macos/* packages/macos/
+          cp artifacts/frontend-macos/sabotaypro-macos-app.tar.gz packages/macos/
+          cd packages
+          tar -czf sabotaypro-macos-${{ needs.determine-version.outputs.version }}.tar.gz macos/
+
+      - name: Afficher les tailles
+        run: ls -lh packages/*.zip packages/*.tar.gz
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sabotaypro-v${{ needs.determine-version.outputs.version }}
+          path: |
+            packages/sabotaypro-windows-*.zip
+            packages/SabotayPro-Setup.zip
+            packages/sabotaypro-macos-*.tar.gz
+          retention-days: 30
+
+      - name: Créer GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SabotayPro v${{ needs.determine-version.outputs.version }}
+          body: |
+            ## SabotayPro v${{ needs.determine-version.outputs.version }}
+
+            | Plateforme | Fichier |
+            |-----------|---------|
+            | Windows — Installeur (signé) | `SabotayPro-Setup.zip` |
+            | Windows — Zip (brut, backend+frontend) | `sabotaypro-windows-${{ needs.determine-version.outputs.version }}.zip` |
+            | macOS — Zip (backend+app, non signé/notarisé) | `sabotaypro-macos-${{ needs.determine-version.outputs.version }}.tar.gz` |
+
+            ### Installation Windows
+            Extraire `SabotayPro-Setup.zip` puis exécuter le `.exe` obtenu en tant qu'Administrateur.
+
+            ### Installation macOS
+            Extraire l'archive, lancer le backend (`sabotaypro-server`) puis l'app
+            (`SabotayPro.app`) — pas encore de service `launchd` automatisé par cet
+            installeur (voir `backend/service_wrapper.py install` en attendant).
+          files: |
+            packages/sabotaypro-windows-*.zip
+            packages/SabotayPro-Setup.zip
+            packages/sabotaypro-macos-*.tar.gz
+          draft: false
+          prerelease: false
+
+      # Miroir public — infini-software/sabotay reste le seul dépôt où les
+      # binaires compilés sont publiés (ce dépôt-ci peut rester privé).
+      # Nécessite le secret INFINI_SOFTWARE_RELEASE_TOKEN (PAT avec accès en
+      # écriture sur infini-software/sabotay) — non-bloquant tant qu'il n'est
+      # pas configuré (continue-on-error, même choix que pos_api).
+      - name: Créer GitHub Release (miroir public infini-software/sabotay)
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: infini-software/sabotay
+          token: ${{ secrets.INFINI_SOFTWARE_RELEASE_TOKEN }}
+          tag_name: v${{ needs.determine-version.outputs.version }}
+          name: SabotayPro v${{ needs.determine-version.outputs.version }}
+          body: |
+            ## SabotayPro v${{ needs.determine-version.outputs.version }}
+
+            | Plateforme | Fichier |
+            |-----------|---------|
+            | Windows — Installeur (signé) | `SabotayPro-Setup.zip` |
+            | Windows — Zip (brut, backend+frontend) | `sabotaypro-windows-${{ needs.determine-version.outputs.version }}.zip` |
+            | macOS — Zip (backend+app, non signé/notarisé) | `sabotaypro-macos-${{ needs.determine-version.outputs.version }}.tar.gz` |
+          files: |
+            packages/sabotaypro-windows-*.zip
+            packages/SabotayPro-Setup.zip
+            packages/sabotaypro-macos-*.tar.gz
+          draft: false
+          prerelease: false

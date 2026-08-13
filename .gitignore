@@ -9,3 +9,8 @@
 # Notes de session temporaires (facultatif — décommenter si tu ne veux pas
 # versionner les identifiants de test qu'elles contiennent)
 # SESSION_NOTES.md
+
+# Epic 5 (build desktop) — artefacts téléchargés/générés par le CI, jamais commités
+certificat/backend-windows/
+certificat/frontend-windows/
+certificat/*.exe

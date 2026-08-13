@@ -7,16 +7,16 @@ from app.models.compte_sabotay import StatutCompte
 
 
 class CompteSabotayCreate(SQLModel):
-    client_id: int
+    client_id: str
     montant_journalier: Decimal
     date_debut: date
     duree_jours: int
 
 
 class CompteSabotayRead(SQLModel):
-    id: int
-    entreprise_id: int
-    client_id: int
+    id: str
+    entreprise_id: str
+    client_id: str
     numero_compte: str
     montant_journalier: Decimal
     date_debut: date
@@ -27,7 +27,7 @@ class CompteSabotayRead(SQLModel):
 
 
 class CompteSabotaySolde(SQLModel):
-    compte_id: int
+    compte_id: str
     montant_total_attendu: Decimal
     montant_collecte: Decimal
     montant_retire: Decimal

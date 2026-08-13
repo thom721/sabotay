@@ -85,7 +85,7 @@ class _AssignAgentSheet extends ConsumerWidget {
     );
   }
 
-  Future<void> _assign(BuildContext context, WidgetRef ref, int? agentId) async {
+  Future<void> _assign(BuildContext context, WidgetRef ref, String? agentId) async {
     try {
       await ref.read(clientListControllerProvider.notifier).assignAgent(client.id, agentId);
       if (context.mounted) Navigator.of(context).pop();

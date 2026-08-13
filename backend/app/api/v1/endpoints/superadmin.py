@@ -13,9 +13,11 @@ from app.core.security import hash_password
 from app.models.abonnement import Abonnement, StatutAbonnement
 from app.models.client import Client
 from app.models.entreprise import Entreprise
+from app.models.paiement_abonnement import PaiementAbonnement
 from app.models.super_admin import SuperAdmin
 from app.models.transaction import Transaction, TypeTransaction
 from app.models.utilisateur import Utilisateur
+from app.schemas.abonnement import PaiementAbonnementRead
 from app.schemas.superadmin import (
     AbonnementSuperAdminRead,
     ClientSuperAdminRead,
@@ -245,7 +247,7 @@ async def create_compte_super_admin(
 
 @router.patch("/comptes/{utilisateur_id}/statut", response_model=SuperAdminCompteRead)
 async def update_compte_super_admin_statut(
-    utilisateur_id: int,
+    utilisateur_id: str,
     payload: SuperAdminStatutUpdate,
     session: SessionDep,
     current_super_admin: CurrentSuperAdmin,
@@ -285,7 +287,7 @@ async def update_compte_super_admin_statut(
 
 @router.get("/entreprises/{entreprise_id}", response_model=EntrepriseSuperAdminDetailRead)
 async def read_entreprise_detail(
-    entreprise_id: int, session: SessionDep, current_super_admin: CurrentSuperAdmin
+    entreprise_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
 ) -> EntrepriseSuperAdminDetailRead:
     """Détail complet d'une entreprise (n'importe laquelle) — pas de vérification tenant."""
     entreprise = await session.get(Entreprise, entreprise_id)
@@ -333,3 +335,26 @@ async def read_entreprise_detail(
         utilisateurs=utilisateurs,
         clients=clients,
     )
+
+
+@router.get(
+    "/entreprises/{entreprise_id}/paiements", response_model=list[PaiementAbonnementRead]
+)
+async def read_entreprise_paiements(
+    entreprise_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
+) -> list[PaiementAbonnement]:
+    """Historique des paiements d'abonnement d'une entreprise (n'importe
+    laquelle) — pas de vérification tenant, même niveau d'accès que
+    `read_entreprise_detail`."""
+    entreprise = await session.get(Entreprise, entreprise_id)
+    if entreprise is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Entreprise introuvable"
+        )
+
+    result = await session.execute(
+        select(PaiementAbonnement)
+        .where(PaiementAbonnement.entreprise_id == entreprise_id)
+        .order_by(PaiementAbonnement.date_paiement.desc())
+    )
+    return list(result.scalars().all())

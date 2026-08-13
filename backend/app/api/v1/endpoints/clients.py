@@ -68,7 +68,7 @@ async def list_clients(
 
 @router.get("/{client_id}", response_model=ClientRead)
 async def get_client(
-    client_id: int, session: SessionDep, entreprise_id: TenantId
+    client_id: str, session: SessionDep, entreprise_id: TenantId
 ) -> ClientRead:
     client = await crud_client.get_for_tenant(
         session, client_id=client_id, entreprise_id=entreprise_id
@@ -86,7 +86,7 @@ async def get_client(
     ],
 )
 async def assign_client_agent(
-    client_id: int, payload: ClientAssignAgent, session: SessionDep, entreprise_id: TenantId
+    client_id: str, payload: ClientAssignAgent, session: SessionDep, entreprise_id: TenantId
 ) -> ClientRead:
     """Assigner/réassigner un client à un agent (PRD §8.2)."""
     client = await crud_client.get_for_tenant(

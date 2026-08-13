@@ -63,7 +63,7 @@ async def get_compte_by_numero(
 
 @router.get("/comptes/{compte_id}", response_model=CompteSabotayRead)
 async def get_compte(
-    compte_id: int, session: SessionDep, entreprise_id: TenantId
+    compte_id: str, session: SessionDep, entreprise_id: TenantId
 ) -> CompteSabotayRead:
     compte = await crud_compte.get_for_tenant(
         session, compte_id=compte_id, entreprise_id=entreprise_id
@@ -75,7 +75,7 @@ async def get_compte(
 
 @router.get("/comptes/{compte_id}/solde", response_model=CompteSabotaySolde)
 async def get_compte_solde(
-    compte_id: int, session: SessionDep, entreprise_id: TenantId
+    compte_id: str, session: SessionDep, entreprise_id: TenantId
 ) -> CompteSabotaySolde:
     compte = await crud_compte.get_for_tenant(
         session, compte_id=compte_id, entreprise_id=entreprise_id
@@ -96,7 +96,7 @@ async def list_comptes_for_current_client(
 
 @router.get("/clients/{client_id}/comptes", response_model=list[CompteSabotayRead])
 async def list_comptes_for_client(
-    client_id: int, session: SessionDep, entreprise_id: TenantId
+    client_id: str, session: SessionDep, entreprise_id: TenantId
 ) -> list[CompteSabotayRead]:
     client = await crud_client.get_for_tenant(
         session, client_id=client_id, entreprise_id=entreprise_id

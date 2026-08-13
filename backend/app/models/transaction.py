@@ -1,8 +1,11 @@
-from datetime import date, datetime, timezone
+import uuid
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
+
+from app.core.dt_utils import now_local
 
 
 class TypeTransaction(StrEnum):
@@ -13,11 +16,11 @@ class TypeTransaction(StrEnum):
 class Transaction(SQLModel, table=True):
     __tablename__ = "transactions"
 
-    id: int | None = Field(default=None, primary_key=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     # Dénormalisé depuis compte_id pour permettre un filtrage tenant_id direct
     # sur cette table sans jointure (isolation multi-tenant systématique).
-    entreprise_id: int = Field(foreign_key="entreprises.id", index=True)
-    compte_id: int = Field(foreign_key="comptes_sabotay.id", index=True)
+    entreprise_id: str = Field(foreign_key="entreprises.id", index=True)
+    compte_id: str = Field(foreign_key="comptes_sabotay.id", index=True)
 
     date: date
     montant: Decimal = Field(max_digits=12, decimal_places=2)
@@ -31,9 +34,17 @@ class Transaction(SQLModel, table=True):
     # Entreprise.frais_retrait au moment du retrait pour garder une trace
     # même si la configuration change ensuite.
     frais: Decimal | None = Field(default=None, max_digits=12, decimal_places=2)
-    collecte_par_id: int = Field(foreign_key="utilisateurs.id")
+    collecte_par_id: str = Field(foreign_key="utilisateurs.id")
     # Dénormalisé depuis collecte_par_id : un reçu réimprimé plus tard doit
     # afficher qui a collecté, mais GET /utilisateurs est réservé
     # Admin/Manager — un Agent ne peut pas résoudre le nom d'un collègue.
     collecte_par_nom: str
-    cree_le: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    cree_le: datetime = Field(default_factory=now_local)
+    # Watermark de synchronisation (Phase 2) — mis à jour automatiquement par
+    # SQLAlchemy à chaque UPDATE (onupdate), jamais réglé manuellement dans
+    # les endpoints. Une transaction est rarement modifiée après coup, mais
+    # la colonne existe pour rester cohérente avec le registre de sync.
+    updated_at: datetime = Field(
+        default_factory=now_local,
+        sa_column_kwargs={"onupdate": now_local},
+    )

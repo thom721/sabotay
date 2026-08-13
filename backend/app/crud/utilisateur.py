@@ -18,7 +18,7 @@ async def get_by_telephone_ou_email(
 
 
 async def create(
-    session: AsyncSession, *, entreprise_id: int, data: UtilisateurCreate
+    session: AsyncSession, *, entreprise_id: str, data: UtilisateurCreate
 ) -> Utilisateur:
     temp_password = generate_temp_password()
     utilisateur = Utilisateur(
@@ -50,14 +50,14 @@ async def create(
     return utilisateur
 
 
-async def list_for_tenant(session: AsyncSession, *, entreprise_id: int) -> list[Utilisateur]:
+async def list_for_tenant(session: AsyncSession, *, entreprise_id: str) -> list[Utilisateur]:
     statement = select(Utilisateur).where(Utilisateur.entreprise_id == entreprise_id)
     result = await session.execute(statement)
     return list(result.scalars().all())
 
 
 async def get_for_tenant(
-    session: AsyncSession, *, utilisateur_id: int, entreprise_id: int
+    session: AsyncSession, *, utilisateur_id: str, entreprise_id: str
 ) -> Utilisateur | None:
     statement = select(Utilisateur).where(
         Utilisateur.id == utilisateur_id, Utilisateur.entreprise_id == entreprise_id

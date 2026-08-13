@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.db import get_session
 from app.core.deps import CurrentUser
+from app.core.dt_utils import now_local
 from app.core.security import create_access_token, hash_password, verify_password
 from app.crud.utilisateur import get_by_telephone_ou_email
 from app.models.utilisateur import Utilisateur
@@ -29,7 +29,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user.derniere_connexion = datetime.now(timezone.utc)
+    user.derniere_connexion = now_local()
     session.add(user)
     await session.commit()
 

@@ -11,27 +11,27 @@ class TransactionCreate(SQLModel):
     calculé côté serveur (nb_jours * compte.montant_journalier) pour qu'il
     ne soit pas modifiable, même en contournant l'UI."""
 
-    compte_id: int
+    compte_id: str
     date: date
     nb_jours: int = 1
 
 
 class RetraitCreate(SQLModel):
-    compte_id: int
+    compte_id: str
     date: date
     montant: Decimal
 
 
 class TransactionRead(SQLModel):
-    id: int
-    entreprise_id: int
-    compte_id: int
+    id: str
+    entreprise_id: str
+    compte_id: str
     date: date
     montant: Decimal
     type: TypeTransaction
     nb_jours: int | None
     frais: Decimal | None
-    collecte_par_id: int
+    collecte_par_id: str
     collecte_par_nom: str
     cree_le: datetime
 

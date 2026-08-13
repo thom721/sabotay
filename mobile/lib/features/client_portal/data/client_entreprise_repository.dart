@@ -28,7 +28,7 @@ class ClientEntrepriseRepository {
         .toList();
   }
 
-  Future<String> switchEntreprise(int clientId) async {
+  Future<String> switchEntreprise(String clientId) async {
     final response = await _dio.post(
       '/clients/moi/switch-entreprise',
       data: {'client_id': clientId},

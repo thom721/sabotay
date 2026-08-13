@@ -7,7 +7,7 @@ final clientListControllerProvider =
     AsyncNotifierProvider<ClientListController, List<Client>>(ClientListController.new);
 
 /// Fiche d'un client précis (écran de détail, PRD §8.4).
-final clientDetailProvider = FutureProvider.family<Client, int>((ref, clientId) {
+final clientDetailProvider = FutureProvider.family<Client, String>((ref, clientId) {
   return ref.watch(clientRepositoryProvider).getOne(clientId);
 });
 
@@ -49,7 +49,7 @@ class ClientListController extends AsyncNotifier<List<Client>> {
     await refresh();
   }
 
-  Future<void> assignAgent(int clientId, int? agentId) async {
+  Future<void> assignAgent(String clientId, String? agentId) async {
     await ref.read(clientRepositoryProvider).assignAgent(clientId, agentId);
     await refresh();
   }

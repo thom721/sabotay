@@ -57,7 +57,7 @@ async def list_utilisateurs(
     dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
 )
 async def update_utilisateur_statut(
-    utilisateur_id: int,
+    utilisateur_id: str,
     payload: UtilisateurStatutUpdate,
     session: SessionDep,
     entreprise_id: TenantId,
@@ -88,7 +88,7 @@ async def update_utilisateur_statut(
     dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
 )
 async def update_utilisateur_role(
-    utilisateur_id: int,
+    utilisateur_id: str,
     payload: UtilisateurRoleUpdate,
     session: SessionDep,
     entreprise_id: TenantId,

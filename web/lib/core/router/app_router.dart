@@ -23,6 +23,8 @@ import '../../features/employees/presentation/employee_detail_screen.dart';
 import '../../features/employees/presentation/employee_list_screen.dart';
 import '../../features/entreprise/presentation/entreprise_profile_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/setup_bureau/presentation/setup_bureau_screen.dart';
+import '../../features/setup_bureau/presentation/setup_providers.dart';
 import '../../features/superadmin/presentation/superadmin_comptes_screen.dart';
 import '../../features/superadmin/presentation/superadmin_entreprise_detail_screen.dart';
 import '../../features/superadmin/presentation/superadmin_entreprises_screen.dart';
@@ -46,13 +48,19 @@ const _forcePasswordChangeRoute = '/changer-mot-de-passe';
 const _clientRoutes = {'/client/accueil', '/client/historique', '/client/profil'};
 const _clientForcePasswordChangeRoute = '/client/changer-mot-de-passe';
 
+/// Assistant de première connexion bureau (Epic 5f) — n'a de sens que sur le
+/// binaire desktop bundlé, jamais sur le web navigateur (voir
+/// setupStatutProvider, qui court-circuite sur kIsWeb).
+const _setupBureauRoute = '/bureau/connexion-cloud';
+
 /// Fait rejouer les redirections de GoRouter à chaque changement d'état
 /// d'authentification (login/logout/expiration de session), staff comme
-/// Client.
+/// Client, ou de liaison au cloud d'un poste bureau.
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen(authControllerProvider, (_, __) => notifyListeners());
     ref.listen(clientAuthControllerProvider, (_, __) => notifyListeners());
+    ref.listen(setupStatutProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -71,6 +79,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       // faire interférer avec cette arborescence. Chaque écran de
       // `/superadmin/*` gère lui-même sa redirection si non connecté.
       if (location.startsWith('/superadmin')) return null;
+
+      // Poste bureau (Epic 5) pas encore lié à une entreprise cloud : bloque
+      // tout accès (y compris /superadmin exclu ci-dessus n'a de toute façon
+      // aucun sens sur un poste local) jusqu'à ce que l'assistant de
+      // connexion cloud soit complété. Sur le web navigateur, ce provider
+      // renvoie toujours `installationTerminee: true` sans appel réseau
+      // (voir setupStatutProvider) — ce bloc n'a donc d'effet que sur le
+      // binaire desktop bundlé.
+      final setupState = ref.read(setupStatutProvider);
+      final setupInitialLoading = setupState.isLoading && !setupState.hasValue;
+      if (setupInitialLoading) {
+        return location == '/splash' ? null : '/splash';
+      }
+      final setupStatut = setupState.valueOrNull;
+      if (setupStatut != null && !setupStatut.installationTerminee) {
+        return location == _setupBureauRoute ? null : _setupBureauRoute;
+      }
 
       final authState = ref.read(authControllerProvider);
       final clientAuthState = ref.read(clientAuthControllerProvider);
@@ -135,6 +160,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const _SplashScreen()),
+      GoRoute(
+        path: _setupBureauRoute,
+        builder: (context, state) => const SetupBureauScreen(),
+      ),
       GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/inscription', builder: (context, state) => const RegisterScreen()),
@@ -154,7 +183,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/employes/:employeeId',
         builder: (context, state) =>
-            EmployeeDetailScreen(employeeId: int.parse(state.pathParameters['employeeId']!)),
+            EmployeeDetailScreen(employeeId: state.pathParameters['employeeId']!),
       ),
       GoRoute(
         path: '/admin/clients',
@@ -163,7 +192,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/clients/:clientId',
         builder: (context, state) =>
-            ClientDetailScreen(clientId: int.parse(state.pathParameters['clientId']!)),
+            ClientDetailScreen(clientId: state.pathParameters['clientId']!),
       ),
       GoRoute(
         path: '/admin/entreprise',
@@ -186,7 +215,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/superadmin/entreprises/:entrepriseId',
         builder: (context, state) => SuperAdminEntrepriseDetailScreen(
-          entrepriseId: int.parse(state.pathParameters['entrepriseId']!),
+          entrepriseId: state.pathParameters['entrepriseId']!,
         ),
       ),
       GoRoute(

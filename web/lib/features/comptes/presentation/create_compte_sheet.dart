@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../data/compte_repository.dart';
 import 'compte_providers.dart';
 
-Future<void> showCreateCompteSheet(BuildContext context, int clientId) {
+Future<void> showCreateCompteSheet(BuildContext context, String clientId) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -14,7 +14,7 @@ Future<void> showCreateCompteSheet(BuildContext context, int clientId) {
 }
 
 class _CreateCompteSheet extends ConsumerStatefulWidget {
-  final int clientId;
+  final String clientId;
   const _CreateCompteSheet({required this.clientId});
 
   @override

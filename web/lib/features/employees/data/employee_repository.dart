@@ -54,7 +54,7 @@ class EmployeeRepository {
     return Employee.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Employee> updateStatut(int employeeId, StatutUtilisateur statut) async {
+  Future<Employee> updateStatut(String employeeId, StatutUtilisateur statut) async {
     final response = await _dio.patch(
       '/utilisateurs/$employeeId/statut',
       data: {'statut': statut.name},
@@ -65,7 +65,7 @@ class EmployeeRepository {
   /// Change le rôle d'un employé (PRD §8.2). Le backend refuse qu'un Admin
   /// se rétrograde lui-même — l'UI ne doit pas offrir ce cas pour sa propre
   /// ligne (voir `_EmployeeTile.isSelf`).
-  Future<Employee> changeRole(int employeeId, RoleUtilisateur role) async {
+  Future<Employee> changeRole(String employeeId, RoleUtilisateur role) async {
     final response = await _dio.patch(
       '/utilisateurs/$employeeId/role',
       data: {'role': role.name},

@@ -22,7 +22,7 @@ class ClientRepository {
         .toList();
   }
 
-  Future<Client> getById(int clientId) async {
+  Future<Client> getById(String clientId) async {
     final response = await _dio.get('/clients/$clientId');
     return Client.fromJson(response.data as Map<String, dynamic>);
   }

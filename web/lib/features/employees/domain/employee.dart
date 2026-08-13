@@ -9,8 +9,8 @@ StatutUtilisateur statutUtilisateurFromString(String value) =>
     );
 
 class Employee {
-  final int id;
-  final int entrepriseId;
+  final String id;
+  final String entrepriseId;
   final String nom;
   final String prenom;
   final String telephone;
@@ -43,8 +43,8 @@ class Employee {
   String get nomComplet => '$prenom $nom';
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
-        id: json['id'] as int,
-        entrepriseId: json['entreprise_id'] as int,
+        id: json['id'] as String,
+        entrepriseId: json['entreprise_id'] as String,
         nom: json['nom'] as String,
         prenom: json['prenom'] as String? ?? '',
         telephone: json['telephone'] as String,

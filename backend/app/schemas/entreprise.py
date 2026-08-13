@@ -16,7 +16,7 @@ class EntrepriseRegister(SQLModel):
 
 
 class EntrepriseRead(SQLModel):
-    id: int
+    id: str
     nom: str
     devise: str
     adresse: str | None

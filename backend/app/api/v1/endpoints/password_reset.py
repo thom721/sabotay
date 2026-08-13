@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.crud.password_reset as crud_password_reset
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.notifications import send_email, send_sms
 from app.core.security import generate_code, hash_password, verify_password
@@ -24,6 +25,15 @@ _INVALID_CODE_ERROR = HTTPException(
     status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré"
 )
 
+_INDISPONIBLE_EN_LOCAL = HTTPException(
+    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    detail=(
+        "Réinitialisation de mot de passe indisponible en mode local — "
+        "utilisez le web cloud (même logique que l'inscription d'entreprise, "
+        "PRD §5.3)."
+    ),
+)
+
 
 @router.post("/mot-de-passe-oublie", response_model=PasswordResetGenericResponse)
 async def request_password_reset(
@@ -32,6 +42,8 @@ async def request_password_reset(
     """Demande un code de réinitialisation. Réponse toujours générique — que
     l'utilisateur existe, soit actif, ou ait le canal demandé — pour éviter
     toute énumération de comptes."""
+    if settings.LOCAL_MODE:
+        raise _INDISPONIBLE_EN_LOCAL
     user = await get_by_telephone_ou_email(session, payload.identifiant)
 
     if user is not None and user.statut == StatutUtilisateur.ACTIF:
@@ -54,6 +66,8 @@ async def request_password_reset(
 async def confirm_password_reset(
     payload: PasswordResetConfirm, session: SessionDep
 ) -> PasswordResetGenericResponse:
+    if settings.LOCAL_MODE:
+        raise _INDISPONIBLE_EN_LOCAL
     user = await get_by_telephone_ou_email(session, payload.identifiant)
     if user is None or user.statut != StatutUtilisateur.ACTIF:
         raise _INVALID_CODE_ERROR

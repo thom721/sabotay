@@ -1,7 +1,10 @@
-from datetime import date, datetime, timezone
+import uuid
+from datetime import date, datetime
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
+
+from app.core.dt_utils import now_local
 
 
 class RoleUtilisateur(StrEnum):
@@ -18,8 +21,11 @@ class StatutUtilisateur(StrEnum):
 class Utilisateur(SQLModel, table=True):
     __tablename__ = "utilisateurs"
 
-    id: int | None = Field(default=None, primary_key=True)
-    entreprise_id: int = Field(foreign_key="entreprises.id", index=True)
+    # UUID généré à la construction de l'objet (jamais par une séquence DB) —
+    # deux installations (cloud, poste local) ne peuvent jamais assigner le
+    # même id, connectées ou non. Même choix que pos_api (UUIDBase).
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    entreprise_id: str = Field(foreign_key="entreprises.id", index=True)
     nom: str
     prenom: str | None = Field(default=None)
     telephone: str = Field(index=True)
@@ -31,5 +37,12 @@ class Utilisateur(SQLModel, table=True):
     adresse: str | None = Field(default=None)
     role: RoleUtilisateur
     statut: StatutUtilisateur = Field(default=StatutUtilisateur.ACTIF)
-    date_creation: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    date_creation: datetime = Field(default_factory=now_local)
     derniere_connexion: datetime | None = Field(default=None)
+    # Watermark de synchronisation (Phase 2) — mis à jour automatiquement par
+    # SQLAlchemy à chaque UPDATE (onupdate), jamais réglé manuellement dans
+    # les endpoints.
+    updated_at: datetime = Field(
+        default_factory=now_local,
+        sa_column_kwargs={"onupdate": now_local},
+    )

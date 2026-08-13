@@ -2,7 +2,7 @@ import 'entreprise_summary.dart';
 
 /// Utilisateur (staff) d'une entreprise, tel que vu par le super-admin.
 class SuperAdminUtilisateur {
-  final int id;
+  final String id;
   final String nom;
   final String prenom;
   final String? email;
@@ -21,7 +21,7 @@ class SuperAdminUtilisateur {
   });
 
   factory SuperAdminUtilisateur.fromJson(Map<String, dynamic> json) => SuperAdminUtilisateur(
-        id: json['id'] as int,
+        id: json['id'] as String,
         nom: json['nom'] as String,
         prenom: json['prenom'] as String,
         email: json['email'] as String?,
@@ -33,7 +33,7 @@ class SuperAdminUtilisateur {
 
 /// Client d'une entreprise, tel que vu par le super-admin.
 class SuperAdminClient {
-  final int id;
+  final String id;
   final String nom;
   final String prenom;
   final String telephone;
@@ -52,7 +52,7 @@ class SuperAdminClient {
   });
 
   factory SuperAdminClient.fromJson(Map<String, dynamic> json) => SuperAdminClient(
-        id: json['id'] as int,
+        id: json['id'] as String,
         nom: json['nom'] as String,
         prenom: json['prenom'] as String,
         telephone: json['telephone'] as String,

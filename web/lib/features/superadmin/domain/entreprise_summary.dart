@@ -15,7 +15,7 @@ class Abonnement {
 
 /// Résumé d'une entreprise dans la liste `/superadmin/entreprises`.
 class EntrepriseSummary {
-  final int id;
+  final String id;
   final String nom;
   final String devise;
   final String statut;
@@ -36,7 +36,7 @@ class EntrepriseSummary {
   });
 
   factory EntrepriseSummary.fromJson(Map<String, dynamic> json) => EntrepriseSummary(
-        id: json['id'] as int,
+        id: json['id'] as String,
         nom: json['nom'] as String,
         devise: json['devise'] as String,
         statut: json['statut'] as String,

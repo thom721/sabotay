@@ -6,8 +6,8 @@ from app.models.abonnement import PlanAbonnement, StatutAbonnement
 
 
 class AbonnementRead(SQLModel):
-    id: int
-    entreprise_id: int
+    id: str
+    entreprise_id: str
     plan: PlanAbonnement
     statut: StatutAbonnement
     montant: int
@@ -18,6 +18,26 @@ class AbonnementRead(SQLModel):
 
 class AbonnementPayerResponse(SQLModel):
     redirect_url: str
+
+
+class PaiementAbonnementRead(SQLModel):
+    id: str
+    montant: int
+    moncash_order_id: str | None
+    moncash_transaction_id: str | None
+    date_paiement: datetime
+
+
+class LicenceResponse(SQLModel):
+    """Blob de licence signé (Ed25519) — vérifiable côté client sans réseau.
+
+    `data` : payload JSON encodé en base64. `signature` : signature Ed25519
+    de `data` (avant encodage), encodée en base64. Le client vérifie avec la
+    clé publique embarquée avant de faire confiance au contenu de `data`.
+    """
+
+    data: str
+    signature: str
 
 
 class AbonnementVerifierResponse(SQLModel):

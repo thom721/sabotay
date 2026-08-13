@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/domain/user.dart';
 import '../../features/auth/presentation/auth_controller.dart';
+import 'licence_banner.dart';
 
 class NavItem {
   final IconData icon;
@@ -58,6 +59,7 @@ class DashboardShell extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (isWide) _PageHeader(title: title, action: action),
+                    const LicenceBanner(),
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
