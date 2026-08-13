@@ -202,7 +202,7 @@ class _DetailContentState extends ConsumerState<_DetailContent> {
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         widget.detail.utilisateurs.isEmpty
-            ? const EmptyState(message: 'Aucun utilisateur')
+            ? const _CardEmptyState(message: 'Aucun utilisateur')
             : Card(
                 margin: EdgeInsets.zero,
                 child: Column(
@@ -233,7 +233,7 @@ class _DetailContentState extends ConsumerState<_DetailContent> {
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         widget.detail.clients.isEmpty
-            ? const EmptyState(message: 'Aucun client')
+            ? const _CardEmptyState(message: 'Aucun client')
             : Card(
                 margin: EdgeInsets.zero,
                 child: Column(
@@ -287,7 +287,7 @@ class _HistoriquePaiements extends ConsumerWidget {
         onRetry: () => ref.invalidate(superAdminEntreprisePaiementsProvider(entrepriseId)),
       ),
       data: (paiements) => paiements.isEmpty
-          ? const EmptyState(message: 'Aucun paiement pour l\'instant')
+          ? const _CardEmptyState(message: 'Aucun paiement pour l\'instant')
           : Card(
               margin: EdgeInsets.zero,
               child: Column(
@@ -439,6 +439,30 @@ class _PaiementTileState extends ConsumerState<_PaiementTile> {
                     ),
                   ),
                 ),
+    );
+  }
+}
+
+/// [EmptyState] enveloppé dans une Card — chaque section de cette fiche doit
+/// rester sur un fond blanc, y compris quand elle est vide (sinon le texte
+/// "Aucun ..." flotte directement sur le fond gris de la page).
+class _CardEmptyState extends StatelessWidget {
+  final String message;
+  const _CardEmptyState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ),
+      ),
     );
   }
 }

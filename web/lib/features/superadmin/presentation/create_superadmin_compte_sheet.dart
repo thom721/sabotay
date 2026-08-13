@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'superadmin_comptes_controller.dart';
 
 Future<void> showCreateSuperAdminCompteSheet(BuildContext context) {
-  return showModalBottomSheet(
+  return showDialog(
     context: context,
-    isScrollControlled: true,
     builder: (context) => const _CreateSuperAdminCompteSheet(),
   );
 }
@@ -57,21 +56,17 @@ class _CreateSuperAdminCompteSheetState extends ConsumerState<_CreateSuperAdminC
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Nouveau compte super-admin', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
+    return AlertDialog(
+      title: const Text('Nouveau compte super-admin'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      content: SizedBox(
+        width: 560,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             TextFormField(
               controller: _nomController,
               textInputAction: TextInputAction.next,
@@ -104,20 +99,27 @@ class _CreateSuperAdminCompteSheetState extends ConsumerState<_CreateSuperAdminC
                   (value == null || value.length < 8) ? 'Au moins 8 caractères' : null,
               onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSaving ? null : _submit,
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Créer le compte'),
-            ),
-          ],
+            const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _submit,
+          child: _isSaving
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Créer le compte'),
+        ),
+      ],
     );
   }
 }

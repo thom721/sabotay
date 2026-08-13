@@ -8,9 +8,8 @@ import '../domain/client.dart';
 import 'client_list_controller.dart';
 
 Future<void> showAssignAgentSheet(BuildContext context, Client client) {
-  return showModalBottomSheet(
+  return showDialog(
     context: context,
-    isScrollControlled: true,
     builder: (context) => _AssignAgentSheet(client: client),
   );
 }
@@ -23,15 +22,15 @@ class _AssignAgentSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employeesAsync = ref.watch(employeeListControllerProvider);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+    return AlertDialog(
+      title: Text('Assigner ${client.nomComplet}'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      content: SizedBox(
+        width: 560,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Assigner ${client.nomComplet}', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
             Text(
               'Choisissez l\'agent qui collectera chez ce client.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -82,6 +81,12 @@ class _AssignAgentSheet extends ConsumerWidget {
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+      ],
     );
   }
 

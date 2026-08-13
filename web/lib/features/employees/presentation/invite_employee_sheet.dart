@@ -8,9 +8,8 @@ import 'employee_list_controller.dart';
 final _dateFormat = DateFormat('dd/MM/yyyy');
 
 Future<void> showInviteEmployeeSheet(BuildContext context) {
-  return showModalBottomSheet(
+  return showDialog(
     context: context,
-    isScrollControlled: true,
     builder: (context) => const _InviteEmployeeSheet(),
   );
 }
@@ -91,27 +90,18 @@ class _InviteEmployeeSheetState extends ConsumerState<_InviteEmployeeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) => SingleChildScrollView(
-        controller: scrollController,
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Inviter un employé', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
+    return AlertDialog(
+      title: const Text('Inviter un employé'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               LayoutBuilder(
                 builder: (context, constraints) {
                   final prenomField = TextFormField(
@@ -205,21 +195,28 @@ class _InviteEmployeeSheetState extends ConsumerState<_InviteEmployeeSheet> {
                 'Un mot de passe temporaire sera envoyé par email à l\'employé.',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _submit,
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Créer le compte'),
-              ),
-            ],
+              const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _submit,
+          child: _isSaving
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Créer le compte'),
+        ),
+      ],
     );
   }
 }

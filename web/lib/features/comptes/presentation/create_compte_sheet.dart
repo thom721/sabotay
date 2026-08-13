@@ -6,9 +6,8 @@ import '../data/compte_repository.dart';
 import 'compte_providers.dart';
 
 Future<void> showCreateCompteSheet(BuildContext context, String clientId) {
-  return showModalBottomSheet(
+  return showDialog(
     context: context,
-    isScrollControlled: true,
     builder: (context) => _CreateCompteSheet(clientId: clientId),
   );
 }
@@ -69,21 +68,17 @@ class _CreateCompteSheetState extends ConsumerState<_CreateCompteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Nouveau compte Sabotay', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
+    return AlertDialog(
+      title: const Text('Nouveau compte Sabotay'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      content: SizedBox(
+        width: 560,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             TextFormField(
               controller: _montantController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -113,20 +108,27 @@ class _CreateCompteSheetState extends ConsumerState<_CreateCompteSheet> {
               icon: const Icon(Icons.calendar_today_outlined, size: 18),
               label: Text('Début : ${DateFormat('dd/MM/yyyy').format(_dateDebut)}'),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSaving ? null : _submit,
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Créer le compte'),
-            ),
-          ],
+            const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _submit,
+          child: _isSaving
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Créer le compte'),
+        ),
+      ],
     );
   }
 }

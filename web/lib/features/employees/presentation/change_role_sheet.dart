@@ -6,9 +6,8 @@ import '../domain/employee.dart';
 import 'employee_list_controller.dart';
 
 Future<void> showChangeRoleSheet(BuildContext context, Employee employee) {
-  return showModalBottomSheet(
+  return showDialog(
     context: context,
-    isScrollControlled: true,
     builder: (context) => _ChangeRoleSheet(employee: employee),
   );
 }
@@ -19,15 +18,15 @@ class _ChangeRoleSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+    return AlertDialog(
+      title: Text('Rôle de ${employee.nom}'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      content: SizedBox(
+        width: 560,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Rôle de ${employee.nom}', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
             Text(
               'Choisissez le nouveau rôle de cet employé.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -44,6 +43,12 @@ class _ChangeRoleSheet extends ConsumerWidget {
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+      ],
     );
   }
 
