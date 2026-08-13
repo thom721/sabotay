@@ -31,6 +31,7 @@ class ClientDetailScreen extends ConsumerWidget {
       title: clientAsync.valueOrNull?.nomComplet ?? 'Client',
       currentRoute: '/admin/clients',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       action: ElevatedButton.icon(
         onPressed: () => showCreateCompteSheet(context, clientId),
         icon: const Icon(Icons.add, size: 18),

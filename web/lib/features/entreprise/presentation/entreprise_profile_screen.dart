@@ -27,6 +27,7 @@ class EntrepriseProfileScreen extends ConsumerWidget {
       title: 'Entreprise',
       currentRoute: '/admin/entreprise',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

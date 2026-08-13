@@ -30,6 +30,7 @@ class AbonnementScreen extends ConsumerWidget {
       title: 'Abonnement',
       currentRoute: '/admin/abonnement',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       child: abonnementAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.only(top: 80),

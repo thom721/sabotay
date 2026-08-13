@@ -52,7 +52,6 @@ class DashboardShell extends ConsumerWidget {
         final sidebar = _Sidebar(navItems: navItems, currentRoute: currentRoute, user: user);
 
         return Scaffold(
-          backgroundColor: backgroundColor,
           appBar: isWide ? null : AppBar(title: Text(title)),
           drawer: isWide ? null : Drawer(child: sidebar),
           body: Row(
@@ -60,19 +59,26 @@ class DashboardShell extends ConsumerWidget {
               if (isWide) SizedBox(width: _sidebarWidth, child: sidebar),
               if (isWide)
                 VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outline),
+              // Container plutôt que Scaffold.backgroundColor : n'enveloppe
+              // que la zone de contenu, jamais le sidebar/séparateur — même
+              // sur mobile (pas de sidebar visible côté Row, donc sans
+              // conséquence là-bas).
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (isWide) _PageHeader(title: title, action: action),
-                    const LicenceBanner(),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                        child: child,
+                child: Container(
+                  color: backgroundColor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (isWide) _PageHeader(title: title, action: action),
+                      const LicenceBanner(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                          child: child,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

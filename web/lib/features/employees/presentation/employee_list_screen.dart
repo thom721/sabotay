@@ -34,6 +34,7 @@ class EmployeeListScreen extends ConsumerWidget {
       title: 'Employés',
       currentRoute: '/admin/employes',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -38,6 +38,7 @@ class EmployeeDetailScreen extends ConsumerWidget {
       title: employee?.nomComplet ?? 'Employé',
       currentRoute: '/admin/employes',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       child: employeesAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.only(top: 80),

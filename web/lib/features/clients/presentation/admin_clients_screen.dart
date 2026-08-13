@@ -43,6 +43,7 @@ class AdminClientsScreen extends ConsumerWidget {
       title: 'Clients',
       currentRoute: '/admin/clients',
       navItems: adminNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
