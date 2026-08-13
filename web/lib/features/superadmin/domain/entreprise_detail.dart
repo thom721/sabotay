@@ -4,7 +4,7 @@ import 'entreprise_summary.dart';
 class SuperAdminUtilisateur {
   final String id;
   final String nom;
-  final String prenom;
+  final String? prenom;
   final String? email;
   final String role;
   final String statut;
@@ -23,7 +23,7 @@ class SuperAdminUtilisateur {
   factory SuperAdminUtilisateur.fromJson(Map<String, dynamic> json) => SuperAdminUtilisateur(
         id: json['id'] as String,
         nom: json['nom'] as String,
-        prenom: json['prenom'] as String,
+        prenom: json['prenom'] as String?,
         email: json['email'] as String?,
         role: json['role'] as String,
         statut: json['statut'] as String,

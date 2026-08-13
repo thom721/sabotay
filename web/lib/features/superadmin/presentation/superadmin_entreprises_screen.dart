@@ -274,10 +274,10 @@ class _EntrepriseRow extends StatelessWidget {
                 AbonnementStatutChip(statut: entreprise.abonnement!.statut),
                 if (entreprise.abonnement!.dateRenouvellement != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       'Renouvellement : ${entreprise.abonnement!.dateRenouvellement}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
                     ),
                   ),
               ],

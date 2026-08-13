@@ -210,7 +210,11 @@ class _DetailContentState extends ConsumerState<_DetailContent> {
                     for (var i = 0; i < widget.detail.utilisateurs.length; i++) ...[
                       if (i > 0) const Divider(height: 1),
                       ListTile(
-                        title: Text('${widget.detail.utilisateurs[i].prenom} ${widget.detail.utilisateurs[i].nom}'),
+                        title: Text(
+                          widget.detail.utilisateurs[i].prenom != null
+                              ? '${widget.detail.utilisateurs[i].prenom} ${widget.detail.utilisateurs[i].nom}'
+                              : widget.detail.utilisateurs[i].nom,
+                        ),
                         subtitle: Text(
                           '${widget.detail.utilisateurs[i].role} · ${widget.detail.utilisateurs[i].statut}'
                           '${widget.detail.utilisateurs[i].email != null ? ' · ${widget.detail.utilisateurs[i].email}' : ''}',

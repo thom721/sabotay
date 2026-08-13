@@ -68,9 +68,12 @@ class AbonnementStatutChip extends StatelessWidget {
     }
 
     return Chip(
-      label: Text(statut, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+      label: Text(statut, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
       backgroundColor: color.withOpacity(0.12),
       side: BorderSide(color: color.withOpacity(0.4)),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
     );
   }
 }
