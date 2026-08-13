@@ -14,15 +14,21 @@ class Env {
         defaultTargetPlatform == TargetPlatform.macOS;
   }
 
-  /// URL de base de l'API FastAPI. Le port 9004 correspond au
-  /// `SERVER_PORT` par défaut du binaire desktop compilé (voir
-  /// `backend/app/core/config.py`) — même convention que pos_api (leur
-  /// défaut : 9003), un port distinct pour ne jamais entrer en conflit si
-  /// les deux produits sont un jour installés sur le même poste.
-  /// À terme, remplacer par --dart-define=API_BASE_URL=... pour la prod web.
+  /// URL de base de l'API FastAPI.
+  ///
+  /// - Navigateur (kIsWeb) : chemin relatif `/api/v1`, résolu sur le même
+  ///   domaine que la page (nginx y proxy déjà `/api/v1/` vers le backend
+  ///   — voir deploiement/nginx/sabotay.conf). Ça marche sans configuration
+  ///   à la compilation, quel que soit le domaine (prod, staging, etc.).
+  /// - Binaire desktop compilé : le port 9004 correspond au `SERVER_PORT`
+  ///   par défaut de son propre serveur local (voir
+  ///   `backend/app/core/config.py`) — même convention que pos_api (leur
+  ///   défaut : 9003), un port distinct pour ne jamais entrer en conflit si
+  ///   les deux produits sont un jour installés sur le même poste.
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
+    if (kIsWeb) return '/api/v1';
     return 'http://127.0.0.1:9004/api/v1';
   }
 
