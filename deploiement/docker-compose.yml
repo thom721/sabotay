@@ -48,11 +48,11 @@ services:
       - proxy_net
     # Publié sur 127.0.0.1 uniquement (pas 0.0.0.0) — seul le nginx système
     # de ce VPS, qui tourne hors Docker, doit pouvoir atteindre ce port (voir
-    # nginx/sabotay.conf : proxy_pass http://127.0.0.1:9004). proxy_net
+    # nginx/sabotay.conf : proxy_pass http://127.0.0.1:9008). proxy_net
     # (réseau externe partagé) reste rejoint en plus, pour un éventuel proxy
     # dockerisé futur sur ce même VPS — actuellement inutilisé.
     ports:
-      - "127.0.0.1:9004:9004"
+      - "127.0.0.1:9008:9004"
     environment:
       PROJECT_NAME: SabotayPro
       ENVIRONMENT: production
