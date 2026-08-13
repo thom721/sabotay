@@ -1,5 +1,5 @@
 class EntrepriseProfil {
-  final int id;
+  final String id;
   final String nom;
   final String devise;
   final String? adresse;
@@ -20,7 +20,7 @@ class EntrepriseProfil {
   });
 
   factory EntrepriseProfil.fromJson(Map<String, dynamic> json) => EntrepriseProfil(
-        id: json['id'] as int,
+        id: json['id'] as String,
         nom: json['nom'] as String,
         devise: json['devise'] as String,
         adresse: json['adresse'] as String?,

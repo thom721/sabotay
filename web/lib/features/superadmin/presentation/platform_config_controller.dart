@@ -22,4 +22,23 @@ class PlatformConfigController extends AsyncNotifier<PlatformConfig> {
       () => ref.read(superAdminRepositoryProvider).getPlatformConfig(),
     );
   }
+
+  Future<void> updateEmailConfig({
+    required String smtpHost,
+    required int smtpPort,
+    required String smtpUser,
+    String? smtpPassword,
+    required String smtpFromEmail,
+  }) async {
+    state = const AsyncLoading<PlatformConfig>().copyWithPrevious(state);
+    state = await AsyncValue.guard(
+      () => ref.read(superAdminRepositoryProvider).updatePlatformConfigEmail(
+            smtpHost: smtpHost,
+            smtpPort: smtpPort,
+            smtpUser: smtpUser,
+            smtpPassword: smtpPassword,
+            smtpFromEmail: smtpFromEmail,
+          ),
+    );
+  }
 }

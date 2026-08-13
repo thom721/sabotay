@@ -14,3 +14,7 @@
 certificat/backend-windows/
 certificat/frontend-windows/
 certificat/*.exe
+
+# Déploiement Docker — données runtime créées sur le VPS (bind mounts), jamais commitées
+deploiement/postgres_data/
+deploiement/logs/

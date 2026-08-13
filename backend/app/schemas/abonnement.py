@@ -26,6 +26,7 @@ class PaiementAbonnementRead(SQLModel):
     moncash_order_id: str | None
     moncash_transaction_id: str | None
     date_paiement: datetime
+    paye_par_nom: str | None
 
 
 class LicenceResponse(SQLModel):

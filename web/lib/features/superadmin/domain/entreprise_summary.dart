@@ -23,6 +23,10 @@ class EntrepriseSummary {
   final int nbEmployes;
   final int nbClients;
   final Abonnement? abonnement;
+  // Vrai dès la première synchronisation réussie d'un poste bureau — voir
+  // Entreprise.est_installe (backend). Un super-admin peut le repasser à
+  // False (SuperAdminRepository.reinitialiserInstallation).
+  final bool estInstalle;
 
   const EntrepriseSummary({
     required this.id,
@@ -33,6 +37,7 @@ class EntrepriseSummary {
     required this.nbEmployes,
     required this.nbClients,
     required this.abonnement,
+    required this.estInstalle,
   });
 
   factory EntrepriseSummary.fromJson(Map<String, dynamic> json) => EntrepriseSummary(
@@ -46,5 +51,6 @@ class EntrepriseSummary {
         abonnement: json['abonnement'] == null
             ? null
             : Abonnement.fromJson(json['abonnement'] as Map<String, dynamic>),
+        estInstalle: json['est_installe'] as bool,
       );
 }

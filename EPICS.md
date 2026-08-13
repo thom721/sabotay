@@ -57,9 +57,11 @@ Suivi de l'initiative "architecture pos_api" (paiement hors-ligne, sync cloud⇄
 
 ## Epic 4 — Design, responsivité, couleurs 🟡 Partiel
 
-**Fait** : `fillColor` des champs de saisie changé de `colorScheme.surface` à `colorScheme.surfaceVariant` (web + mobile, `core/theme/app_theme.dart`) — un champ rempli de la même couleur que la Card/le BottomSheet qui le contient s'y fondait visuellement.
+**Fait** :
+- `fillColor` des champs de saisie changé de `colorScheme.surface` à `colorScheme.surfaceVariant` (web + mobile, `core/theme/app_theme.dart`) — un champ rempli de la même couleur que la Card/le BottomSheet qui le contient s'y fondait visuellement.
+- **Bug réel trouvé via une vraie capture d'écran de l'app bureau (login)** : `ElevatedButtonThemeData` ne fixait ni `backgroundColor` ni `foregroundColor` — en Material 3 (`useMaterial3: true`), `ElevatedButton` est par défaut un bouton "tonal" discret (fond `surface` teinté, texte `primary`), pas un bouton plein comme en Material 2. Résultat : **tout bouton d'action principale de toute l'app** (web et mobile — "Se connecter" en particulier, mais tous les autres `ElevatedButton` du code sans exception) ressemblait à un simple lien texte, à peine distinguable des vrais liens secondaires (`TextButton`) à côté. Corrigé dans les deux `app_theme.dart` (`backgroundColor: colorScheme.primary`, `foregroundColor: colorScheme.onPrimary` — reproduit le comportement d'un `FilledButton` M3 sans migrer tous les call sites).
 
-**Reste à faire** : la demande initiale ("revoir un peu le design, la responsivité") était large et sans captures d'écran — un audit code-only (sans navigateur/émulateur pour rendre visuellement) ne peut aller plus loin que des vérifications structurelles (breakpoints déjà présents dans plusieurs écrans web via `LayoutBuilder`, pas de `DataTable` non scrollable trouvé). **Pour aller plus loin, il faut soit des captures d'écran de pages précises à problème, soit une session avec accès navigateur réel.**
+**Reste à faire** : la demande initiale ("revoir un peu le design, la responsivité") était large — la première vraie capture d'écran obtenue cette session (app bureau macOS) a permis de trouver ce bug de bouton, mais une seule page a été vue. Les autres écrans (formulaires en Card, tableaux, portail Client) n'ont toujours pas été audités visuellement. **Pour aller plus loin, il faut soit d'autres captures d'écran de pages précises, soit une session avec accès navigateur/app réel.**
 
 ---
 
@@ -71,7 +73,7 @@ Décisions prises : **Nuitka** (comme pos_api) ; cible desktop Flutter **Windows
 
 ### 5a. Point d'entrée compilable ✅ Terminé
 - `backend/server_main.py` créé, calqué sur `pos_api/server_main.py` : imports forcés des packages chargés dynamiquement (`psycopg`, `aiosqlite`, `passlib.handlers.bcrypt`, `jose`, `cryptography`, `multipart`, `aiosmtplib`, `twilio`, `dotenv`, `alembic`), `_fix_workdir()`, log de crash (`%PROGRAMDATA%/SabotayPro` / `~/Library/Application Support/SabotayPro`), popup d'erreur Windows.
-- `SERVER_HOST`/`SERVER_PORT` ajoutés à `Settings`.
+- `SERVER_HOST`/`SERVER_PORT` ajoutés à `Settings` — `SERVER_PORT` par défaut **9004** (pas 9003, celui de pos_api — distinct exprès pour ne jamais entrer en conflit si les deux produits sont installés sur le même poste ; confirmé par l'utilisateur, initialement 8001 par erreur, corrigé partout : `Env.apiBaseUrl` web, `.env` généré par `certificat/sabotaypro-desktop.iss`).
 - `tzdata` (paquet pip, pas la tzdata système) ajouté à `requirements.txt` — sans lui, `zoneinfo.ZoneInfo("America/Port-au-Prince")` (`dt_utils.now_local()`) plante sur un binaire compilé Windows (pas de tzdata OS, contrairement à macOS/Linux) ; Nuitka lui-même refuse de compiler sans ce paquet installé (`--include-package=tzdata` échoue si absent de l'environnement).
 - Testé en mode source (`python server_main.py`, `GET /health` → 200) **et compilé réellement avec Nuitka en standalone sur macOS** (`python -m nuitka --standalone --include-package=app ... server_main.py`) — confirme qu'aucun import dynamique n'a été oublié avant d'écrire le CI.
 
@@ -84,7 +86,7 @@ Décisions prises : **Nuitka** (comme pos_api) ; cible desktop Flutter **Windows
 - **Bug de sandbox macOS trouvé et corrigé** : les entitlements générés par défaut (`DebugProfile.entitlements`, `Release.entitlements`) ne déclarent que `com.apple.security.network.server`, jamais `com.apple.security.network.client` — sans ce dernier, l'App Sandbox macOS bloque silencieusement toute requête HTTP sortante (donc tout appel à l'API locale). Ajouté aux deux fichiers.
 - Nom de produit/bundle : `PRODUCT_NAME`/`ProductName` etc. passés de `sabotaypro`/`com.example.sabotaypro` à `SabotayPro`/`com.sabotaypro.desktop` (`macos/Runner/Configs/AppInfo.xcconfig`, `windows/runner/Runner.rc`) — **`com.sabotaypro.desktop` est un identifiant provisoire**, à confirmer avant toute notarization/soumission store réelle.
 - **`flutter build macos --debug` exécuté réellement** (le seul des deux buildable localement, macOS) → `SabotayPro.app` généré avec succès. `flutter build windows` non testable ici (nécessite un runner Windows, testé pour la première fois en CI, 5e).
-- `Env.apiBaseUrl` (`web/lib/core/network/env.dart`) pointe déjà par défaut sur `http://127.0.0.1:8001/api/v1` — correspond exactement au port par défaut du service local bundlé, aucun changement nécessaire.
+- `Env.apiBaseUrl` (`web/lib/core/config/env.dart`) pointe par défaut sur `http://127.0.0.1:9004/api/v1` — correspond exactement au port par défaut du service local bundlé.
 
 ### 5d. Installateur Windows signé ✅ Terminé (non compile-testé — nécessite Windows)
 - `certificat/sabotaypro-desktop.iss` créé — un seul installeur (voir décision ci-dessus), bundle `backend-windows\*` (sortie Nuitka) dans `{app}\server\`, `frontend-windows\*` (build Flutter) dans `{app}\`, enregistre le service via `sc.exe create` inline dans `[Run]`, génère un `.env` minimal (`LOCAL_MODE=true`, SQLite, `SECRET_KEY` aléatoire par installation, sans `CLOUD_SYNC_URL`/`TOKEN` — voir 5f) via du code Pascal (`CurStepChanged`/`SaveStringsToFile`/`GetSHA1OfString`, fonctions standard Inno Setup).
@@ -104,7 +106,8 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 - Backend : `PATCH app/core/config.py` — `update_env_file()` (persiste des clés dans `.env` sur disque, verrouillage `icacls` sous Windows car le fichier contiendra un jeton de sync longue durée — même précaution que `write_ini_config()` de pos_api pour `pos_server.ini`).
 - `GET /setup/statut` et `POST /setup/connecter` (`app/api/v1/endpoints/setup.py`, `LOCAL_MODE` uniquement, 400 sinon — même garde que `/sync/run`). `POST /setup/connecter` échange le code contre un jeton via `POST /sync/redeem-code` sur le cloud, persiste `CLOUD_SYNC_URL`/`CLOUD_SYNC_TOKEN`, déclenche un `run_sync_cycle()` immédiat (pas d'attente de la boucle des 60s).
 - **`installation_terminee` est dérivé des données réellement présentes** (au moins un utilisateur synchronisé), pas d'un simple flag — même principe que `_is_setup_done()` de pos_api (`db.query(User).count() > 0`) : survit à un `.env` qui contiendrait un jeton périmé sans qu'aucune donnée n'ait jamais été tirée avec succès.
-- Web : nouvelle feature `web/lib/features/setup_bureau/` — écran `SetupBureauScreen` (code + URL cloud), `setupStatutProvider` (court-circuite sur `kIsWeb` : ne fait strictement aucun appel réseau sur le web navigateur, où `LOCAL_MODE` est toujours false côté serveur). Câblé dans `app_router.dart` : tant que `installationTerminee == false`, toutes les routes redirigent vers l'assistant — y compris avant le login normal.
+- Web : nouvelle feature `web/lib/features/setup_bureau/` — écran `SetupBureauScreen` (code d'installation uniquement ; l'URL du cloud n'est **pas** un champ éditable — figée côté client via `Env.defaultCloudUrl`, affichée en lecture seule/grisée, sur demande explicite de l'utilisateur pour qu'un client ne puisse jamais la modifier), `setupStatutProvider` (court-circuite sur `Env.isDesktopBureau` : ne fait strictement aucun appel réseau sur le web navigateur, où `LOCAL_MODE` est toujours false côté serveur). Câblé dans `app_router.dart` : tant que `installationTerminee == false`, toutes les routes redirigent vers l'assistant — y compris avant le login normal.
+- `Env.defaultCloudUrl` : `https://sabotay.infini-software.cloud` — **domaine de production confirmé par l'utilisateur** (même lien pour le web et la synchronisation), injecté à la compilation via `--dart-define=CLOUD_URL=...` par le CI (`.github/workflows/build.yml`, input `cloud_url`) mais codé en dur comme repli même sans ce flag — pas besoin de le repasser à chaque build (même principe que pos_api). Remplace l'ancien placeholder `https://sabotaypro.com`, présent aussi dans `certificat/sabotaypro-desktop.iss` (`MyAppURL`), corrigé au même endroit.
 - **Testé de bout en bout, deux fois** : (1) via curl (deux instances réelles, cloud Postgres + local SQLite vierge) — `GET /setup/statut` → `false`, génération d'un code sur le cloud, `POST /setup/connecter` → pull immédiat de 7 clients/1 compte/1 transaction, `GET /setup/statut` → `true` avec le nom de l'entreprise, retenter le même flux → `409`. (2) via l'app macOS **réellement compilée et lancée** (`open SabotayPro.app`) contre un backend local vierge : logs serveur confirmant `GET /api/v1/setup/statut` appelé par l'app au démarrage — preuve que le chemin `kIsWeb=false` s'exécute correctement de bout en bout. **Non vérifié visuellement** (screenshot impossible dans cet environnement — l'app est confirmée au premier plan par le menu bar mais aucune fenêtre ne s'affiche à la capture, limite de l'environnement d'exécution, pas du code).
 - **Bug réel trouvé et corrigé pendant ce test** : mon propre harnais de test a écrit `CLOUD_SYNC_URL`/`CLOUD_SYNC_TOKEN` de test dans le **vrai** `backend/.env` de dev (au lieu du `.env` d'une instance jetable) — `update_env_file()` résout `.env` relatif au `cwd` du process, exactement comme `pydantic-settings`, ce qui est correct en production (`_fix_workdir()` garantit que le cwd est le dossier de l'exe) mais suppose que qui lance le process se place dans le bon dossier. Nettoyé (valeurs vidées) ; `LICENCE_PRIVATE_KEY` et le reste du fichier n'ont pas été affectés.
 
@@ -120,6 +123,72 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 - **Consommation côté poste local terminée** — voir Epic 5f (`SetupBureauScreen`, `POST /setup/connecter`).
 - **Testé de bout en bout via curl** : génération idempotente, échange réussi → jeton valide pour `/sync/pull`, réutilisation → 409, régénération → ancien code (non utilisé) supprimé, historique des codes utilisés conservé en base.
 - **Reste à faire** : aucune UI web pour la *génération* — `Admin → Entreprise` n'affiche pas encore ce code (l'écran qui le *consomme*, côté poste local, existe désormais ; celui qui le *montre*, côté cloud, non).
+
+---
+
+## Epic 8 — Bootstrap du premier compte super-admin (web) ✅ Terminé
+
+**Objectif** : au tout premier déploiement cloud, aucun compte super-admin n'existe — jusqu'ici il fallait en créer un directement en base via un script Python (fait manuellement pendant cette session, faute de mieux). Demandé explicitement : un vrai flux web pour ça, comme pos_api.
+
+- Backend (`superadmin_auth.py`, routeur `/auth`, public — aucun compte n'existe encore pour s'authentifier) :
+  - `GET /auth/superadmin-bootstrap` → `{necessaire: bool}`, dérivé de `count(SuperAdmin) == 0` — même principe que `/setup/statut` (Epic 5f) et `_is_setup_done()` de pos_api.
+  - `POST /auth/superadmin-bootstrap` → crée le compte, **verrouillé définitivement** dès qu'un compte existe déjà (403) — contrairement à `POST /superadmin/comptes` (toujours ouvert mais exige déjà d'être authentifié, impossible au tout premier déploiement).
+- Web : `SuperAdminBootstrapScreen` (nouvelle route `/superadmin/premier-compte`) — crée le compte puis connecte automatiquement (même schéma que `AuthController.registerEntreprise` côté staff : un seul appel écran). `SuperAdminLoginScreen` redirige vers cet écran si `necessaire=true` ; l'écran de bootstrap redirige vers le login si un compte existe déjà (accès direct après coup).
+- **Testé via curl** : `GET` correct avec des comptes existants (`necessaire:false`), `POST` correctement bloqué (403) tant qu'au moins un compte existe. Le chemin `necessaire:true` (base vide) n'a pas été testé en conditions réelles pour ne pas vider la base de dev existante — logique triviale (`count == 0`), risque jugé négligeable.
+- **Erreur corrigée après coup — réservé au web, jamais au bureau, sur demande explicite de l'utilisateur** : `web/` est désormais compilé à la fois pour le navigateur ET pour l'app bureau (Epic 5c), et `super_admins` n'est jamais peuplé en local (donnée de plateforme, jamais synchronisée vers un poste local, voir `ENTITES` dans `sync.py`) — sans garde-fou, un poste bureau aurait toujours vu `necessaire=true` et proposé de créer un "super-admin" local fantôme. Doublement corrigé : `superAdminBootstrapNecessaireProvider` court-circuite sur `Env.isDesktopBureau` (web), et le backend renvoie `necessaire=false`/400 quand `LOCAL_MODE=true` (défense en profondeur, ne repose pas que sur l'UI — même logique que les gardes déjà en place sur `/setup/*` et `/sync/run`).
+- `flutter analyze`/`test` propres, backend rechargé et revérifié après le correctif.
+
+---
+
+## Epic 9 — Configuration email SMTP dynamique (Paramètres → Email, super-admin) ✅ Terminé
+
+**Objectif** : comme pos_api (`PlatformConfig.smtp_*`), permettre au super-admin de configurer le serveur SMTP d'envoi d'email **depuis l'interface**, sans redéploiement — jusqu'ici uniquement statique via `.env` (`settings.SMTP_*`).
+
+- `PlatformConfig` (table `platform_config`, singleton) étendue : `smtp_host`, `smtp_port` (défaut 587), `smtp_user`, `smtp_password`, `smtp_from_email` — migration `0023`.
+- `PATCH /superadmin/config` devient un **PATCH partiel** (`PlatformConfigUpdate` tout optionnel, `exclude_unset` côté CRUD) : l'onglet Email peut être enregistré sans toucher l'onglet Abonnement, et vice versa — testé via curl (montant changé après coup, config email intacte).
+- `GET /superadmin/config` ne renvoie **jamais** le mot de passe réel — seulement `smtp_password_defini: bool` (même principe que le `"**masked**"` de pos_api, en plus strict : aucune valeur du tout, pas même masquée).
+- `core/notifications.py::send_email()` lit désormais `PlatformConfig` en base (via une session ouverte à la volée, pas besoin de faire passer une session dans tous les appelants) ; les valeurs statiques `.env` (`settings.SMTP_*`) restent un **repli** si la base n'a rien de configuré (compat dev), pas une source concurrente en production.
+- Web : nouvel écran `SuperAdminParametresScreen` (route `/superadmin/parametres`, tab panel — onglets "Abonnement" et "Email"), remplace l'ancien dialog "Prix abonnement" (bouton app bar renommé "Paramètres", icône `settings_outlined`). Mot de passe : champ vide = conserver l'actuel (jamais pré-rempli avec la vraie valeur, jamais renvoyé si laissé vide).
+- **Testé via curl** : `GET` initial (tout vide), `PATCH` email seul, `PATCH` abonnement seul (email intact) — comportement PATCH partiel confirmé. `flutter analyze`/`test`/`build web` propres.
+- **Reste à faire** : pas de bouton "Tester l'envoi" (pos_api n'en a pas non plus) ; si un jour d'autres catégories de réglages s'ajoutent (ex. paiement), ce sera un nouvel onglet dans le même écran, pas un nouvel écran séparé.
+
+---
+
+## Epic 10 — Suivi et réinitialisation de l'installation bureau (super-admin) ✅ Terminé
+
+**Objectif** : le super-admin doit pouvoir voir quelles entreprises ont effectivement installé leur poste bureau, et forcer une réinstallation (ex. changement de machine) — demandé explicitement, avec une règle de bascule précise.
+
+- `Entreprise.est_installe: bool` (migration `0024`) — **jamais réglé manuellement à `True`**, uniquement dérivé de l'activité réelle : `sync.py::_touch_sync_state()` (appelée par `push()`/`pull()` pour chacune des 5 entités synchronisées) le passe à `True` dès le premier appel réussi, quelle que soit l'entité — idempotent (no-op une fois déjà vrai). `POST /sync/redeem-code` (échange du code) ne le touche jamais : redeem-code seul = toujours `False`, confirmé par l'utilisateur (« lorsque le client tape son code d'installation … is_installe doit être false », « après la première installation et synchro … doit être true »). En pratique bascule quasi immédiatement puisque `/setup/connecter` enchaîne redeem-code + `run_sync_cycle()` dans le même appel.
+- `POST /superadmin/entreprises/{id}/reinitialiser-installation` — repasse `est_installe` à `False`. Ne touche pas aux codes d'installation existants : `GET /entreprises/code-installation` régénère automatiquement un nouveau code au prochain accès (aucun code non-utilisé ne subsiste après une installation réussie — comportement déjà existant, Epic 7).
+- Web : indicateur (icône ✓/○) dans la liste des entreprises et sur la fiche détail, plus un bouton "Réinitialiser l'installation" (avec confirmation, visible seulement si `est_installe=true`) sur la fiche détail.
+- **Testé de bout en bout via curl** : `est_installe=false` initial sur les deux entreprises de test → cycle de sync réel (`/sync/token` + `/sync/pull`) sur l'une des deux → bascule confirmée à `true`, l'autre reste `false` → `POST .../reinitialiser-installation` → repasse à `false` → `GET /entreprises/code-installation` régénère bien un nouveau code (`utilise:false`). `flutter analyze`/`test`/`build web` propres.
+- **Non couvert, noté mais pas demandé** : réinitialiser l'installation ne révoque pas le jeton de sync déjà émis à l'ancien poste (jetons stateless, pas de liste de révocation) — l'ancien poste continuerait de fonctionner tant que son jeton (365 jours) est valide. Mentionné explicitement dans le dialogue de confirmation côté web plutôt que caché.
+
+---
+
+## Epic 11 — Vérification d'abonnement hors-ligne (bureau) + traçabilité des paiements ✅ Terminé
+
+**Objectif** : deux trous réels signalés par l'utilisateur.
+
+### Vérification d'abonnement en mode local — bug bloquant corrigé
+`abonnements` n'étant jamais synchronisé vers le SQLite local (voir `ENTITES`, sync.py), `_abonnement_actif()` interrogeait une table structurellement toujours vide sur un poste bureau — **la collecte (`POST /transactions`) y aurait été bloquée en permanence**, jamais testé en conditions réelles jusqu'ici (le licence Ed25519 de l'Epic 1 n'était vérifiée que côté client Dart, purement informative, jamais consultée par le serveur).
+
+- `core/licence.py` : vérification Ed25519 côté Python (`verify_licence_blob`, même clé publique que web/mobile), `acces_autorise_depuis_payload` (réplique la décision allowed/warning/blocked du client Dart), `rafraichir_cache_local`/`abonnement_actif_local`.
+- Nouvelle table `licence_cache_local` (migration `0025`, singleton comme `PlatformConfig`) — payload déjà vérifié, jamais réécrit avec un blob invalide.
+- Rafraîchie par la boucle de sync périodique (`main.py`, toutes les 60s) et immédiatement par `POST /setup/connecter` — **jamais d'appel réseau au moment de la collecte elle-même** (offline-first préservé).
+- `_abonnement_actif()` (transactions.py) bifurque sur `settings.LOCAL_MODE` : lit le cache local au lieu d'interroger `abonnements`.
+- Dates du blob : `datetime.fromisoformat()` (stdlib), qui respecte l'offset explicite porté par `essai_fin`/`valid_until`/`issued_at` (délibérément non-naïves, contrairement au reste de la base — le blob traverse une frontière de confiance/sérialisation, voir le commentaire déjà présent dans `build_licence_payload`).
+- **Testé de bout en bout** : poste local vierge → `/setup/connecter` → cache peuplé et vérifié (`abonnement_statut: actif` confirmé en base) → `POST /transactions` réussit (`201`), ce qui échouait systématiquement avant ce correctif.
+
+### Identifiant utilisateur dans les historiques
+- Retrait : déjà correct (`Transaction.collecte_par_id`/`_nom`, déjà affiché dans l'écran Rapports mobile).
+- Paiement d'abonnement : `PaiementAbonnement.paye_par_id`/`paye_par_nom` ajoutés (migration `0026`), câblés dans `verifier_abonnement`/`marquer_paye_dev`, testés via curl.
+
+### Historique de paiement + impression de reçu (web)
+- Écran Abonnement (tenant, onglet déjà existant) : section "Historique des paiements" + bouton d'impression par ligne (`recu_abonnement_pdf.dart`, même format papier thermique que les reçus de collecte/retrait).
+- Fiche détail entreprise (super-admin) : même section + impression, avec un `EntrepriseProfile` minimal reconstruit depuis `EntrepriseSuperAdminRead` (pas de jeton staff côté super-admin, donc pas d'accès à `GET /entreprises/profil` — seuls nom/devise garantis, le reste (adresse, texte bas de reçu) reste vide sur ce reçu-là).
+- **Bugs UUID réels trouvés au passage** (oubliés lors du sweep de l'Epic 3, round 2) : `Abonnement.id` et `EntrepriseProfile.id` (web **et** mobile) étaient encore typés `int` alors que le backend renvoie un UUID depuis la migration `0021` — `GET /entreprises/profil` (appelé par tout écran de reçu) aurait planté au premier appel. Corrigés ; balayage complet (`grep "as int"`) confirmant qu'aucun autre champ d'id n'a été oublié.
+- `flutter analyze`/`test`/`build web` propres (web et mobile).
 
 ---
 

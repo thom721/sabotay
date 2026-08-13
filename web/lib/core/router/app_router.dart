@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../config/env.dart';
+
 import '../../features/abonnement/presentation/abonnement_screen.dart';
 import '../../features/auth/domain/user.dart';
 import '../../features/auth/presentation/auth_controller.dart';
@@ -25,10 +27,12 @@ import '../../features/entreprise/presentation/entreprise_profile_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/setup_bureau/presentation/setup_bureau_screen.dart';
 import '../../features/setup_bureau/presentation/setup_providers.dart';
+import '../../features/superadmin/presentation/superadmin_bootstrap_screen.dart';
 import '../../features/superadmin/presentation/superadmin_comptes_screen.dart';
 import '../../features/superadmin/presentation/superadmin_entreprise_detail_screen.dart';
 import '../../features/superadmin/presentation/superadmin_entreprises_screen.dart';
 import '../../features/superadmin/presentation/superadmin_login_screen.dart';
+import '../../features/superadmin/presentation/superadmin_parametres_screen.dart';
 
 String _homeForRole(RoleUtilisateur role) => switch (role) {
       RoleUtilisateur.admin => '/admin',
@@ -136,6 +140,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = authState.valueOrNull;
       if (user == null) {
+        // Poste bureau (Epic 5) : jamais de page d'accueil publique (site
+        // marketing multi-tenant) — contrairement au web, l'app desktop est
+        // utilisée par du personnel déjà connu de l'entreprise, exactement
+        // comme le mobile. Va directement au login (inscription/mot de passe
+        // oublié restent atteignables si on y navigue explicitement).
+        if (Env.isDesktopBureau) {
+          return location == '/login' ? null : '/login';
+        }
         return _publicRoutes.contains(location) ? null : '/';
       }
 
@@ -209,6 +221,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SuperAdminLoginScreen(),
       ),
       GoRoute(
+        path: '/superadmin/premier-compte',
+        builder: (context, state) => const SuperAdminBootstrapScreen(),
+      ),
+      GoRoute(
         path: '/superadmin',
         builder: (context, state) => const SuperAdminEntreprisesScreen(),
       ),
@@ -221,6 +237,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/superadmin/comptes',
         builder: (context, state) => const SuperAdminComptesScreen(),
+      ),
+      GoRoute(
+        path: '/superadmin/parametres',
+        builder: (context, state) => const SuperAdminParametresScreen(),
       ),
       GoRoute(
         path: '/client/login',

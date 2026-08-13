@@ -9,6 +9,8 @@ from app.models.password_reset_token import CanalReset, PasswordResetToken
 from app.models.super_admin import SuperAdmin
 from app.models.platform_config import PlatformConfig
 from app.models.sync_state import SyncState
+from app.models.code_installation import CodeInstallation
+from app.models.licence_cache_local import LicenceCacheLocal
 
 __all__ = [
     "Entreprise",
@@ -31,4 +33,6 @@ __all__ = [
     "SuperAdmin",
     "PlatformConfig",
     "SyncState",
+    "CodeInstallation",
+    "LicenceCacheLocal",
 ]

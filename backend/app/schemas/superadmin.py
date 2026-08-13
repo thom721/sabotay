@@ -24,6 +24,10 @@ class EntrepriseSuperAdminRead(SQLModel):
     abonnement: AbonnementSuperAdminRead | None
     nb_employes: int
     nb_clients: int
+    # Vrai dès la première synchronisation réussie d'un poste bureau — voir
+    # Entreprise.est_installe. Un super-admin peut le repasser à False
+    # (POST /superadmin/entreprises/{id}/reinitialiser-installation).
+    est_installe: bool
 
 
 class UtilisateurSuperAdminRead(SQLModel):
@@ -75,6 +79,10 @@ class SuperAdminCompteCreate(SQLModel):
     password: str
 
 
+class SuperAdminBootstrapStatut(SQLModel):
+    necessaire: bool
+
+
 class SuperAdminStatutUpdate(SQLModel):
     statut: str
 
@@ -82,8 +90,23 @@ class SuperAdminStatutUpdate(SQLModel):
 class PlatformConfigRead(SQLModel):
     abonnement_montant_htg: int
     essai_jours: int
+    smtp_host: str | None
+    smtp_port: int
+    smtp_user: str | None
+    # Jamais le mot de passe réel — seulement s'il est défini ou non (voir
+    # read_platform_config, qui construit ce champ explicitement).
+    smtp_password_defini: bool
+    smtp_from_email: str | None
 
 
 class PlatformConfigUpdate(SQLModel):
-    abonnement_montant_htg: int
-    essai_jours: int
+    # Tous optionnels — PATCH partiel, un onglet (Abonnement, Email) peut
+    # envoyer uniquement ses propres champs sans écraser les autres (voir
+    # crud.platform_config.update, exclude_unset).
+    abonnement_montant_htg: int | None = None
+    essai_jours: int | None = None
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None

@@ -68,7 +68,21 @@ class Settings(BaseSettings):
     # `uvicorn app.main:app` du développement passe par sa propre CLI et
     # ignore ces valeurs.
     SERVER_HOST: str = "127.0.0.1"
-    SERVER_PORT: int = 8001
+    # 9004, pas 9003 (pos_api) — distinct pour ne jamais entrer en conflit si
+    # les deux produits sont un jour installés sur le même poste.
+    SERVER_PORT: int = 9004
+
+    # Origines autorisées en CORS — "*" par défaut (dev : Flutter web tourne
+    # sur un port différent du backend). En déploiement réel
+    # (deploiement/docker-compose.yml), régler sur le(s) domaine(s) exact(s)
+    # séparés par des virgules, ex. "https://sabotay.infini-software.cloud".
+    CORS_ORIGINS: str = "*"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
 settings = Settings()

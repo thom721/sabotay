@@ -164,6 +164,17 @@ async def _touch_sync_state(
     if pulled:
         state.last_pull_at = now
     session.add(state)
+
+    # Première synchronisation réussie (n'importe quelle entité) pour cette
+    # entreprise = installation bureau terminée. Jamais réglé manuellement à
+    # True ailleurs — voir Entreprise.est_installe. Idempotent (no-op une
+    # fois déjà à True), donc pas besoin de distinguer "première" fois
+    # explicitement.
+    entreprise = await session.get(Entreprise, device.entreprise_id)
+    if entreprise is not None and not entreprise.est_installe:
+        entreprise.est_installe = True
+        session.add(entreprise)
+
     await session.commit()
 
 

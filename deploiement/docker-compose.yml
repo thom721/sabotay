@@ -1,0 +1,104 @@
+# Déploiement Docker de SabotayPro — calqué sur le docker-compose.yml de
+# pos_api (Postgres au lieu de MySQL, un seul .env au lieu de variables
+# éclatées). Lancer depuis ce dossier : `docker compose up -d --build`.
+#
+# Pas de service nginx ici : sur ce VPS, nginx est déjà installé au niveau
+# système (partagé avec d'autres sites) — voir nginx/sabotay.conf, à copier
+# dans /etc/nginx/sites-available/ sur l'hôte. Ce compose ne publie donc que
+# le port du backend sur 127.0.0.1 (jamais 0.0.0.0), pour que seul le nginx
+# système puisse l'atteindre — jamais exposé directement à Internet.
+
+services:
+
+  # ── Base de données Postgres ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sabotay_postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - sabotay_internal     # Postgres n'est PAS accessible depuis proxy_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API FastAPI ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: sabotay_api
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sabotay_internal     # parle à Postgres
+      - proxy_net
+    # Publié sur 127.0.0.1 uniquement (pas 0.0.0.0) — seul le nginx système
+    # de ce VPS, qui tourne hors Docker, doit pouvoir atteindre ce port (voir
+    # nginx/sabotay.conf : proxy_pass http://127.0.0.1:9004). proxy_net
+    # (réseau externe partagé) reste rejoint en plus, pour un éventuel proxy
+    # dockerisé futur sur ce même VPS — actuellement inutilisé.
+    ports:
+      - "127.0.0.1:9004:9004"
+    environment:
+      PROJECT_NAME: SabotayPro
+      ENVIRONMENT: production
+
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL_SYNC: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+      # Générer : openssl rand -hex 32
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+
+      # Domaine(s) exact(s) autorisés en CORS, séparés par des virgules —
+      # jamais "*" en production (voir core/config.py::cors_origins_list).
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://sabotay.infini-software.cloud}
+
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+
+      PASSWORD_RESET_CODE_TTL_MINUTES: 15
+      PASSWORD_RESET_MAX_ATTEMPTS: 5
+
+      MONCASH_CLIENT_ID: ${MONCASH_CLIENT_ID:-}
+      MONCASH_CLIENT_SECRET: ${MONCASH_CLIENT_SECRET:-}
+      MONCASH_MODE: ${MONCASH_MODE:-live}
+      ABONNEMENT_MONTANT_HTG: ${ABONNEMENT_MONTANT_HTG:-100}
+
+      # Cloud uniquement — ne jamais régler sur un poste local. Générer via
+      # backend/scripts/generate_licence_keypair.py, ne jamais commiter la
+      # vraie valeur.
+      LICENCE_PRIVATE_KEY: ${LICENCE_PRIVATE_KEY:-}
+
+      # Ce conteneur EST le cloud — toujours false ici (LOCAL_MODE concerne
+      # uniquement le binaire desktop compilé, voir Epic 5/EPICS.md).
+      LOCAL_MODE: "false"
+
+networks:
+  sabotay_internal:
+    driver: bridge            # réseau privé entre FastAPI ↔ Postgres
+
+  proxy_net:
+    external: true            # réseau partagé créé manuellement sur le VPS

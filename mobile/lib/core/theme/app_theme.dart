@@ -195,6 +195,13 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          // Material 3 change ElevatedButton en bouton "tonal" discret par
+          // défaut (fond surface teinté, texte primary, pas de fond plein)
+          // — sans ces deux lignes tout bouton d'action principale de l'app
+          // se fond dans l'arrière-plan (même bug constaté et corrigé côté
+          // web, voir son app_theme.dart).
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           // Largeur minimale finie : un Size.fromHeight (largeur infinie)
           // fait planter tout bouton placé dans une Row/Wrap plutôt qu'étiré
           // par une Column(crossAxisAlignment: stretch).

@@ -18,6 +18,8 @@ _SYNC_INTERVAL_SECONDS = 60
 
 
 async def _boucle_sync_periodique() -> None:
+    from app.core import licence
+    from app.core.db import async_session_maker
     from app.services.local_sync_client import run_sync_cycle
 
     while True:
@@ -27,6 +29,15 @@ async def _boucle_sync_periodique() -> None:
             logger.info("Cycle de sync : %s", resultat)
         except Exception:
             logger.exception("Échec du cycle de sync périodique")
+
+        try:
+            # Tient à jour le cache de licence dont dépend _abonnement_actif()
+            # en mode local (voir transactions.py) — jamais d'appel réseau au
+            # moment de la collecte elle-même, seulement ici.
+            async with async_session_maker() as session:
+                await licence.rafraichir_cache_local(session)
+        except Exception:
+            logger.exception("Échec du rafraîchissement du cache de licence local")
 
 
 @contextlib.asynccontextmanager
@@ -56,10 +67,13 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 # Dev : Flutter web tourne sur un port différent du backend (origine différente
 # au sens CORS). Pas de cookies utilisés (auth par Bearer token), donc un
-# wildcard est sans risque ici — à restreindre à un domaine précis en prod.
+# wildcard est sans risque même en prod dans l'absolu — mais restreint via
+# CORS_ORIGINS dès que réglé (voir Settings), pour qu'un domaine précis soit
+# explicitement listé en déploiement réel plutôt que de compter sur "aucun
+# cookie" comme unique garde-fou.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -21,7 +21,7 @@ on:
           URL du cloud figée dans le binaire desktop (assistant "Connecter au
           cloud", Epic 5f) — jamais modifiable par le client final.
         required: false
-        default: 'https://sabotaypro.com'
+        default: 'https://sabotay.infini-software.cloud'
   push:
     tags:
       - 'v*'
@@ -171,7 +171,7 @@ jobs:
         shell: pwsh
         run: |
           $cloudUrl = "${{ github.event.inputs.cloud_url }}"
-          if ([string]::IsNullOrEmpty($cloudUrl)) { $cloudUrl = "https://sabotaypro.com" }
+          if ([string]::IsNullOrEmpty($cloudUrl)) { $cloudUrl = "https://sabotay.infini-software.cloud" }
           flutter build windows --release --dart-define=CLOUD_URL=$cloudUrl
 
       - name: Upload artifact
@@ -201,7 +201,7 @@ jobs:
         working-directory: web
         run: |
           CLOUD_URL="${{ github.event.inputs.cloud_url }}"
-          CLOUD_URL="${CLOUD_URL:-https://sabotaypro.com}"
+          CLOUD_URL="${CLOUD_URL:-https://sabotay.infini-software.cloud}"
           flutter build macos --release --dart-define=CLOUD_URL="$CLOUD_URL"
 
       - name: Archiver le bundle .app

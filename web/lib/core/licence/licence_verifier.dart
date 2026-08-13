@@ -14,7 +14,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// ici, dans la copie mobile/, et dans `LICENCE_PRIVATE_KEY` (backend .env,
 /// la clé privée correspondante). Générée via
 /// backend/scripts/generate_licence_keypair.py.
-const _kLicencePublicKeyB64 = 'yM213gXd/iCwlsCeBfi8sg8GikxxkVBBloK6xTWMKmQ=';
+const _kLicencePublicKeyB64 = 'jBbWT2x0xd+1BErKl38DWOkNZa2QjYJa3+Lvs6S/sFM=';
 
 const _kGraceHorsLigne = Duration(days: 3);
 
@@ -95,32 +95,39 @@ class LicenceVerifier {
     if (blobData == null || blobSignature == null) {
       // Pas de réseau et rien en cache — on ne bloque pas un utilisateur
       // légitime sur un premier lancement hors-ligne.
-      return const LicenceStatus(access: LicenceAccess.allowed, isOffline: true);
+      return const LicenceStatus(
+          access: LicenceAccess.allowed, isOffline: true);
     }
     if (!await _verifierSignature(blobData, blobSignature)) {
-      return const LicenceStatus(access: LicenceAccess.allowed, isOffline: true);
+      return const LicenceStatus(
+          access: LicenceAccess.allowed, isOffline: true);
     }
     return _statutDepuisBlob(blobData, isOffline: true);
   }
 
-  static Future<bool> _verifierSignature(String dataB64, String signatureB64) async {
+  static Future<bool> _verifierSignature(
+      String dataB64, String signatureB64) async {
     try {
       final algorithm = Ed25519();
       final publicKey = SimplePublicKey(
         base64Decode(_kLicencePublicKeyB64),
         type: KeyPairType.ed25519,
       );
-      final signature = Signature(base64Decode(signatureB64), publicKey: publicKey);
-      return await algorithm.verify(base64Decode(dataB64), signature: signature);
+      final signature =
+          Signature(base64Decode(signatureB64), publicKey: publicKey);
+      return await algorithm.verify(base64Decode(dataB64),
+          signature: signature);
     } catch (_) {
       return false;
     }
   }
 
-  static LicenceStatus _statutDepuisBlob(String dataB64, {required bool isOffline}) {
+  static LicenceStatus _statutDepuisBlob(String dataB64,
+      {required bool isOffline}) {
     final Map<String, dynamic> payload;
     try {
-      payload = jsonDecode(utf8.decode(base64Decode(dataB64))) as Map<String, dynamic>;
+      payload = jsonDecode(utf8.decode(base64Decode(dataB64)))
+          as Map<String, dynamic>;
     } catch (_) {
       return LicenceStatus(access: LicenceAccess.allowed, isOffline: isOffline);
     }
@@ -130,10 +137,12 @@ class LicenceVerifier {
     final dateRenouvellement = payload['date_renouvellement'] == null
         ? null
         : DateTime.tryParse(payload['date_renouvellement'] as String);
-    final essaiFin =
-        payload['essai_fin'] == null ? null : DateTime.tryParse(payload['essai_fin'] as String);
-    final validUntil =
-        payload['valid_until'] == null ? null : DateTime.tryParse(payload['valid_until'] as String);
+    final essaiFin = payload['essai_fin'] == null
+        ? null
+        : DateTime.tryParse(payload['essai_fin'] as String);
+    final validUntil = payload['valid_until'] == null
+        ? null
+        : DateTime.tryParse(payload['valid_until'] as String);
 
     final now = DateTime.now().toUtc();
 
@@ -151,7 +160,8 @@ class LicenceVerifier {
     }
 
     final blobFrais = validUntil != null && now.isBefore(validUntil);
-    final graceHorsLigne = validUntil != null && now.isBefore(validUntil.add(_kGraceHorsLigne));
+    final graceHorsLigne =
+        validUntil != null && now.isBefore(validUntil.add(_kGraceHorsLigne));
 
     if (entrepriseStatut == 'suspendu') {
       return LicenceStatus(
@@ -175,7 +185,9 @@ class LicenceVerifier {
       );
     }
 
-    if (abonnementStatut == 'essai' && essaiFin != null && essaiFin.isAfter(now)) {
+    if (abonnementStatut == 'essai' &&
+        essaiFin != null &&
+        essaiFin.isAfter(now)) {
       return LicenceStatus(
         access: LicenceAccess.warning,
         entrepriseStatut: entrepriseStatut,
@@ -192,7 +204,8 @@ class LicenceVerifier {
         entrepriseStatut: entrepriseStatut,
         abonnementStatut: abonnementStatut,
         isOffline: isOffline,
-        message: 'Hors ligne depuis plusieurs jours — reconnectez-vous bientôt.',
+        message:
+            'Hors ligne depuis plusieurs jours — reconnectez-vous bientôt.',
       );
     }
 

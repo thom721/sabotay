@@ -14,3 +14,14 @@ class PlatformConfig(SQLModel, table=True):
     # Durée de la période d'essai gratuit (PRD §8.5), en jours à partir de
     # `Entreprise.date_creation` — voir `_abonnement_actif` (transactions.py).
     essai_jours: int = Field(default=14)
+
+    # Configuration email SMTP dynamique — éditable par le super-admin
+    # (Paramètres → Email), lue par core/notifications.py::send_email() au
+    # lieu des valeurs statiques .env (settings.SMTP_*, gardées en repli si
+    # ces champs sont vides). Même principe que PlatformConfig.smtp_* de
+    # pos_api : source de vérité en base, pas dans la config de déploiement.
+    smtp_host: str | None = Field(default=None)
+    smtp_port: int = Field(default=587)
+    smtp_user: str | None = Field(default=None)
+    smtp_password: str | None = Field(default=None)
+    smtp_from_email: str | None = Field(default=None)

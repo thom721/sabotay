@@ -10,6 +10,8 @@ import '../../../core/widgets/dashboard_shell.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../data/abonnement_repository.dart';
 import '../domain/abonnement.dart';
+import '../domain/paiement_abonnement.dart';
+import 'recu_abonnement_pdf.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _montantFormat = NumberFormat('#,##0.##');
@@ -159,7 +161,61 @@ class _AbonnementContentState extends ConsumerState<_AbonnementContent> {
             ),
           ),
         ],
+        const SizedBox(height: 24),
+        Text('Historique des paiements', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        const _HistoriquePaiements(),
       ],
+    );
+  }
+}
+
+class _HistoriquePaiements extends ConsumerWidget {
+  const _HistoriquePaiements();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final paiementsAsync = ref.watch(paiementsAbonnementProvider);
+
+    return paiementsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.only(top: 24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => ErrorState(
+        message: 'Impossible de charger l\'historique des paiements',
+        onRetry: () => ref.invalidate(paiementsAbonnementProvider),
+      ),
+      data: (paiements) => paiements.isEmpty
+          ? const EmptyState(message: 'Aucun paiement pour l\'instant')
+          : Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var i = 0; i < paiements.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    ListTile(
+                      title: Text(
+                        '${_montantFormat.format(paiements[i].montant)} HTG — '
+                        '${_dateFormat.format(paiements[i].datePaiement)}',
+                      ),
+                      subtitle: paiements[i].payeParNom != null
+                          ? Text('Confirmé par ${paiements[i].payeParNom}')
+                          : null,
+                      trailing: IconButton(
+                        icon: const Icon(Icons.print_outlined),
+                        tooltip: 'Imprimer le reçu',
+                        onPressed: () => imprimerRecuAbonnement(
+                          context,
+                          ref,
+                          paiement: paiements[i],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }

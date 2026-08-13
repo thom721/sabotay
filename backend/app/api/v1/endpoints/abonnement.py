@@ -10,7 +10,7 @@ import app.crud.platform_config as crud_platform_config
 from app.core import licence, moncash
 from app.core.config import settings
 from app.core.db import get_session
-from app.core.deps import TenantId, TenantIdOrSync, require_roles
+from app.core.deps import CurrentUser, TenantId, TenantIdOrSync, require_roles
 from app.core.dt_utils import now_local
 from app.core.moncash import MonCashNotConfiguredError
 from app.models.abonnement import Abonnement, StatutAbonnement
@@ -156,7 +156,7 @@ async def payer_abonnement(session: SessionDep, entreprise_id: TenantId) -> Abon
     dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
 )
 async def verifier_abonnement(
-    session: SessionDep, entreprise_id: TenantId
+    session: SessionDep, entreprise_id: TenantId, current_user: CurrentUser
 ) -> AbonnementVerifierResponse:
     """Vérifie auprès de MonCash si le paiement de l'abonnement a été confirmé
     (Admin uniquement). Cas de polling normal : si pas encore payé, retourne
@@ -197,6 +197,8 @@ async def verifier_abonnement(
             montant=abonnement.montant,
             moncash_order_id=abonnement.moncash_order_id,
             moncash_transaction_id=abonnement.moncash_transaction_id,
+            paye_par_id=current_user.id,
+            paye_par_nom=current_user.nom,
             date_paiement=now,
         )
     )
@@ -213,7 +215,9 @@ async def verifier_abonnement(
     response_model=AbonnementRead,
     dependencies=[Depends(require_roles(RoleUtilisateur.ADMIN))],
 )
-async def marquer_paye_dev(session: SessionDep, entreprise_id: TenantId) -> Abonnement:
+async def marquer_paye_dev(
+    session: SessionDep, entreprise_id: TenantId, current_user: CurrentUser
+) -> Abonnement:
     """DEV UNIQUEMENT — active l'abonnement du tenant sans passer par MonCash.
 
     Sert exclusivement à tester le blocage de POST /transactions tant qu'aucun
@@ -240,6 +244,8 @@ async def marquer_paye_dev(session: SessionDep, entreprise_id: TenantId) -> Abon
             entreprise_id=entreprise_id,
             montant=abonnement.montant,
             date_paiement=now,
+            paye_par_id=current_user.id,
+            paye_par_nom=current_user.nom,
         )
     )
     await session.commit()

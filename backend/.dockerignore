@@ -1,0 +1,11 @@
+.venv/
+.venv.windows-broken/
+__pycache__/
+**/__pycache__/
+*.pyc
+dist/
+*.build/
+*.dist/
+*.db
+*.log
+.env

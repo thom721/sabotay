@@ -2,8 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- App Sandbox désactivé : flutter_secure_storage (Keychain) échoue
+	     silencieusement sous sandbox sans entitlement keychain-access-groups
+	     (qui nécessite un Team ID Apple Developer payant) — constaté ici même
+	     (login réseau réussi, mais sauvegarde du token en échec juste après).
+	     Sandbox n'est de toute façon requis que pour le Mac App Store ;
+	     cette app est distribuée en direct (voir certificat/*.iss, Epic 5). -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
 	<key>com.apple.security.network.server</key>

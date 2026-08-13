@@ -8,6 +8,8 @@ from sqlmodel import select
 import app.crud.compte_sabotay as crud_compte
 import app.crud.platform_config as crud_platform_config
 import app.crud.transaction as crud_transaction
+from app.core import licence
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.deps import CurrentUser, TenantId, require_roles
 from app.core.dt_utils import now_local
@@ -38,7 +40,16 @@ async def _abonnement_actif(session: SessionDep, entreprise_id: str) -> bool:
     (PRD §8.5, `platform_config.essai_jours`, décomptée depuis
     `Entreprise.date_creation`). La collecte de cotisations (POST
     /transactions) est bloquée sinon, alors que la création de
-    clients/employés/comptes reste libre (PRD paiement MonCash)."""
+    clients/employés/comptes reste libre (PRD paiement MonCash).
+
+    En mode local, `abonnements` n'est jamais synchronisé (voir `ENTITES`
+    dans sync.py) — la requête ci-dessous ne trouverait donc jamais rien et
+    bloquerait la collecte en permanence sur un poste bureau. On consulte à
+    la place le cache de licence Ed25519 vérifié (voir
+    `core/licence.py::abonnement_actif_local`), jamais d'appel réseau ici."""
+    if settings.LOCAL_MODE:
+        return await licence.abonnement_actif_local(session)
+
     result = await session.execute(
         select(Abonnement).where(Abonnement.entreprise_id == entreprise_id)
     )

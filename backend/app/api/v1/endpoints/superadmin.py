@@ -77,6 +77,7 @@ async def _build_entreprise_summary(
         ),
         nb_employes=nb_employes,
         nb_clients=nb_clients,
+        est_installe=entreprise.est_installe,
     )
 
 
@@ -157,13 +158,27 @@ async def read_statistiques(
     )
 
 
+def _to_platform_config_read(config) -> PlatformConfigRead:
+    return PlatformConfigRead(
+        abonnement_montant_htg=config.abonnement_montant_htg,
+        essai_jours=config.essai_jours,
+        smtp_host=config.smtp_host,
+        smtp_port=config.smtp_port,
+        smtp_user=config.smtp_user,
+        smtp_password_defini=bool(config.smtp_password),
+        smtp_from_email=config.smtp_from_email,
+    )
+
+
 @router.get("/config", response_model=PlatformConfigRead)
 async def read_platform_config(
     session: SessionDep, current_super_admin: CurrentSuperAdmin
 ) -> PlatformConfigRead:
-    """Réglages globaux de la plateforme (aujourd'hui : prix de l'abonnement
-    annuel en HTG, appliqué à toutes les entreprises)."""
-    return await crud_platform_config.get(session)
+    """Réglages globaux de la plateforme : abonnement (prix, essai) et email
+    SMTP dynamique (Paramètres → Email) — jamais le mot de passe SMTP réel,
+    seulement s'il est défini."""
+    config = await crud_platform_config.get(session)
+    return _to_platform_config_read(config)
 
 
 @router.patch("/config", response_model=PlatformConfigRead)
@@ -172,18 +187,17 @@ async def update_platform_config(
     session: SessionDep,
     current_super_admin: CurrentSuperAdmin,
 ) -> PlatformConfigRead:
-    if payload.abonnement_montant_htg <= 0:
+    if payload.abonnement_montant_htg is not None and payload.abonnement_montant_htg <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Le montant doit être positif"
         )
-    if payload.essai_jours <= 0:
+    if payload.essai_jours is not None and payload.essai_jours <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Le nombre de jours d'essai doit être positif",
         )
-    return await crud_platform_config.update(
-        session, montant=payload.abonnement_montant_htg, essai_jours=payload.essai_jours
-    )
+    config = await crud_platform_config.update(session, payload)
+    return _to_platform_config_read(config)
 
 
 @router.get("/comptes", response_model=list[SuperAdminCompteRead])
@@ -335,6 +349,32 @@ async def read_entreprise_detail(
         utilisateurs=utilisateurs,
         clients=clients,
     )
+
+
+@router.post(
+    "/entreprises/{entreprise_id}/reinitialiser-installation",
+    response_model=EntrepriseSuperAdminRead,
+)
+async def reinitialiser_installation(
+    entreprise_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
+) -> EntrepriseSuperAdminRead:
+    """Repasse `est_installe` à False — permet à l'entreprise de refaire
+    l'installation bureau (ex. changement de machine). Ne touche pas aux
+    codes d'installation existants : le prochain
+    `GET /entreprises/code-installation` régénère automatiquement un
+    nouveau code puisqu'aucun code non-utilisé ne subsiste après une
+    installation réussie (voir entreprises.py)."""
+    entreprise = await session.get(Entreprise, entreprise_id)
+    if entreprise is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Entreprise introuvable"
+        )
+
+    entreprise.est_installe = False
+    session.add(entreprise)
+    await session.commit()
+
+    return await _build_entreprise_summary(session, entreprise)
 
 
 @router.get(

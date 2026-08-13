@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../domain/abonnement.dart';
+import '../domain/paiement_abonnement.dart';
 
 final abonnementRepositoryProvider = Provider<AbonnementRepository>((ref) {
   return AbonnementRepository(ref.watch(apiClientProvider));
@@ -14,6 +15,11 @@ final abonnementProvider = FutureProvider<Abonnement>((ref) {
   return ref.watch(abonnementRepositoryProvider).getAbonnement();
 });
 
+/// Historique des paiements de l'entreprise, du plus récent au plus ancien.
+final paiementsAbonnementProvider = FutureProvider<List<PaiementAbonnement>>((ref) {
+  return ref.watch(abonnementRepositoryProvider).getPaiements();
+});
+
 class AbonnementRepository {
   final Dio _dio;
 
@@ -22,6 +28,13 @@ class AbonnementRepository {
   Future<Abonnement> getAbonnement() async {
     final response = await _dio.get('/abonnement');
     return Abonnement.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<PaiementAbonnement>> getPaiements() async {
+    final response = await _dio.get('/abonnement/paiements');
+    return (response.data as List<dynamic>)
+        .map((e) => PaiementAbonnement.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Démarre un paiement MonCash (Admin uniquement) et renvoie l'URL de

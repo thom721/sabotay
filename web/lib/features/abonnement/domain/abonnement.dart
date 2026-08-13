@@ -10,7 +10,7 @@ String statutAbonnementLabel(String statut) => switch (statut) {
 /// Abonnement SabotayPro de l'entreprise (PRD — paiement annuel via
 /// MonCash). `statut` : "essai" | "actif" | "suspendu" | "annule".
 class Abonnement {
-  final int id;
+  final String id;
   final String entrepriseId;
   final String plan;
   final String statut;
@@ -33,7 +33,7 @@ class Abonnement {
   bool get estActif => statut == 'actif';
 
   factory Abonnement.fromJson(Map<String, dynamic> json) => Abonnement(
-        id: json['id'] as int,
+        id: json['id'] as String,
         entrepriseId: json['entreprise_id'] as String,
         plan: json['plan'] as String,
         statut: json['statut'] as String,

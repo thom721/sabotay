@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.models.platform_config import PlatformConfig
+from app.schemas.superadmin import PlatformConfigUpdate
 
 
 async def get(session: AsyncSession) -> PlatformConfig:
@@ -16,10 +17,13 @@ async def get(session: AsyncSession) -> PlatformConfig:
     return config
 
 
-async def update(session: AsyncSession, *, montant: int, essai_jours: int) -> PlatformConfig:
+async def update(session: AsyncSession, payload: PlatformConfigUpdate) -> PlatformConfig:
+    """PATCH partiel : n'écrase que les champs explicitement fournis — un
+    onglet Paramètres (Abonnement, Email) ne touche jamais les champs des
+    autres onglets."""
     config = await get(session)
-    config.abonnement_montant_htg = montant
-    config.essai_jours = essai_jours
+    for key, value in payload.model_dump(exclude_unset=True, exclude_none=True).items():
+        setattr(config, key, value)
     session.add(config)
     await session.commit()
     await session.refresh(config)

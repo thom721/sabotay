@@ -188,6 +188,16 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          // Material 3 change ElevatedButton en bouton "tonal" discret par
+          // défaut (fond surface teinté, texte primary, pas de fond plein)
+          // — contrairement à Material 2, sans ces deux lignes tout bouton
+          // d'action principale de l'app se fond dans l'arrière-plan et
+          // ressemble à un simple lien texte (constaté sur l'écran de
+          // connexion : "Se connecter" à peine distinguable de "Mot de passe
+          // oublié ?"). Fond plein + texte contrastant = FilledButton de M3,
+          // reproduit ici pour ne pas migrer tous les ElevatedButton du code.
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           // Largeur minimale finie : un Size.fromHeight (largeur infinie)
           // fait planter tout bouton placé dans une Row/Wrap plutôt qu'étiré
           // par une Column(crossAxisAlignment: stretch).

@@ -19,8 +19,9 @@
   #define MyAppVersion "1.0.0"
 #endif
 #define MyAppPublisher "SabotayPro"
-; Placeholder — à confirmer avec l'URL/domaine définitif du produit.
-#define MyAppURL     "https://sabotaypro.com"
+; Même domaine que le lien de synchronisation cloud (voir Env.defaultCloudUrl
+; côté web et CLOUD_URL dans le CI).
+#define MyAppURL     "https://sabotay.infini-software.cloud"
 #define MyAppExeName "sabotaypro.exe"
 #define MyServiceExeName "sabotaypro-server.exe"
 #define MyServiceName "SabotayProServer"
@@ -195,7 +196,7 @@ begin
     EnvFile[1] := 'LOCAL_DATABASE_PATH=./sabotay_local.db';
     EnvFile[2] := 'SECRET_KEY=' + SecretKey;
     EnvFile[3] := 'SERVER_HOST=127.0.0.1';
-    EnvFile[4] := 'SERVER_PORT=8001';
+    EnvFile[4] := 'SERVER_PORT=9004';
 
     SaveStringsToFile(EnvPath, EnvFile, False);
   end;

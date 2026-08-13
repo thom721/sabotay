@@ -380,39 +380,55 @@ class _SolutionSection extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final columns = constraints.maxWidth > 860 ? 4 : (constraints.maxWidth > 560 ? 2 : 1);
-              return GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: columns == 1 ? 2.6 : 1.15,
+              // Largeur figée par colonne + Wrap plutôt que GridView.count :
+              // une hauteur de cellule forcée par aspectRatio ne peut pas
+              // s'adapter à un texte qui déborde selon la largeur d'écran
+              // (constaté : débordement à 2 colonnes). Ici chaque carte
+              // prend la hauteur de son propre contenu, jamais plus.
+              final cardWidth = (constraints.maxWidth - (columns - 1) * 12) / columns;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: _features
                     .map(
-                      (f) => Card(
-                        margin: EdgeInsets.zero,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                f.$1.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.8,
-                                  color: colorScheme.primary,
+                      (f) => SizedBox(
+                        width: cardWidth,
+                        child: Card(
+                          margin: EdgeInsets.zero,
+                          // Fond explicitement blanc avec une légère ombre
+                          // au lieu du simple contour fin du cardTheme par
+                          // défaut (sans ombre) — se distinguait trop peu du
+                          // fond crème de la page. Contour retiré ici
+                          // (redondant avec l'ombre, aurait surchargé
+                          // visuellement).
+                          color: Colors.white,
+                          elevation: 1,
+                          shadowColor: Colors.black.withValues(alpha: 0.08),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  f.$1.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                    color: colorScheme.primary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(f.$2, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              const SizedBox(height: 6),
-                              Text(
-                                f.$3,
-                                style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant, height: 1.4),
-                              ),
-                            ],
+                                const SizedBox(height: 6),
+                                Text(f.$2, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                const SizedBox(height: 6),
+                                Text(
+                                  f.$3,
+                                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant, height: 1.4),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

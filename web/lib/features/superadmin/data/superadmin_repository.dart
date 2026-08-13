@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../abonnement/domain/paiement_abonnement.dart';
 import '../domain/entreprise_detail.dart';
 import '../domain/entreprise_summary.dart';
 import '../domain/platform_config.dart';
@@ -34,6 +35,22 @@ class SuperAdminRepository {
   Future<EntrepriseDetail> fetchEntrepriseDetail(String id) async {
     final response = await _dio.get('/superadmin/entreprises/$id');
     return EntrepriseDetail.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<PaiementAbonnement>> fetchEntreprisePaiements(String id) async {
+    final response = await _dio.get('/superadmin/entreprises/$id/paiements');
+    return (response.data as List<dynamic>)
+        .map((e) => PaiementAbonnement.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Repasse `est_installe` à False — l'entreprise pourra refaire
+  /// l'installation bureau (un nouveau code d'installation se régénère
+  /// automatiquement au prochain accès, voir entreprises.py côté backend).
+  Future<EntrepriseSummary> reinitialiserInstallation(String id) async {
+    final response =
+        await _dio.post('/superadmin/entreprises/$id/reinitialiser-installation');
+    return EntrepriseSummary.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<PlatformStatistiques> getStatistiques() async {
@@ -80,6 +97,30 @@ class SuperAdminRepository {
     final response = await _dio.patch(
       '/superadmin/config',
       data: {'abonnement_montant_htg': montant, 'essai_jours': essaiJours},
+    );
+    return PlatformConfig.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// PATCH partiel côté backend (voir PlatformConfigUpdate) — seuls les
+  /// champs fournis ici sont modifiés, l'onglet Abonnement n'est jamais
+  /// touché par un enregistrement de l'onglet Email, et vice versa.
+  /// `smtpPassword` omis (null) = mot de passe existant conservé tel quel.
+  Future<PlatformConfig> updatePlatformConfigEmail({
+    required String smtpHost,
+    required int smtpPort,
+    required String smtpUser,
+    String? smtpPassword,
+    required String smtpFromEmail,
+  }) async {
+    final response = await _dio.patch(
+      '/superadmin/config',
+      data: {
+        'smtp_host': smtpHost,
+        'smtp_port': smtpPort,
+        'smtp_user': smtpUser,
+        if (smtpPassword != null && smtpPassword.isNotEmpty) 'smtp_password': smtpPassword,
+        'smtp_from_email': smtpFromEmail,
+      },
     );
     return PlatformConfig.fromJson(response.data as Map<String, dynamic>);
   }

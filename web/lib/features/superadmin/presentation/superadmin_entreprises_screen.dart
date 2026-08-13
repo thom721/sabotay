@@ -8,7 +8,6 @@ import '../../../core/widgets/stat_card.dart';
 import '../data/superadmin_repository.dart';
 import '../domain/entreprise_summary.dart';
 import '../domain/platform_statistiques.dart';
-import 'platform_config_controller.dart';
 import 'superadmin_auth_controller.dart';
 import 'superadmin_scaffold.dart';
 
@@ -80,17 +79,14 @@ class _SuperAdminEntreprisesScreenState extends ConsumerState<SuperAdminEntrepri
     final filter = (q: _query, statutAbonnement: _statutAbonnement);
     final entreprisesAsync = ref.watch(superAdminEntreprisesProvider(filter));
     final statistiquesAsync = ref.watch(superAdminStatistiquesProvider);
-    // Gardé "au chaud" pour que le dialog prix (_showEditMontantDialog) ait
-    // déjà la valeur courante disponible via `ref.read` dès le premier clic.
-    ref.watch(platformConfigControllerProvider);
 
     return SuperAdminScaffold(
       title: 'SabotayPro — Entreprises',
       actions: [
         IconButton(
-          icon: const Icon(Icons.sell_outlined),
-          tooltip: 'Prix abonnement',
-          onPressed: () => _showEditMontantDialog(context, ref),
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: 'Paramètres',
+          onPressed: () => context.push('/superadmin/parametres'),
         ),
         IconButton(
           icon: const Icon(Icons.manage_accounts),
@@ -187,95 +183,6 @@ class _SuperAdminEntreprisesScreenState extends ConsumerState<SuperAdminEntrepri
   }
 }
 
-/// Édition du prix d'abonnement (unique, global à toute la plateforme —
-/// voir `platform_config_controller.dart`). Un simple dialog suffit pour un
-/// seul champ, pas besoin du pattern bottom-sheet des autres formulaires.
-Future<void> _showEditMontantDialog(BuildContext context, WidgetRef ref) async {
-  final current = ref.read(platformConfigControllerProvider).valueOrNull;
-  final montantController = TextEditingController(
-    text: current?.abonnementMontantHtg.toString() ?? '',
-  );
-  final essaiController = TextEditingController(
-    text: current?.essaiJours.toString() ?? '',
-  );
-  final formKey = GlobalKey<FormState>();
-  var isSaving = false;
-
-  await showDialog<void>(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text('Abonnement'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: montantController,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Montant (HTG)'),
-                validator: (value) {
-                  final parsed = int.tryParse(value ?? '');
-                  if (parsed == null || parsed <= 0) return 'Montant invalide';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: essaiController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Durée de l'essai gratuit (jours)"),
-                validator: (value) {
-                  final parsed = int.tryParse(value ?? '');
-                  if (parsed == null || parsed <= 0) return 'Nombre de jours invalide';
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: isSaving ? null : () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: isSaving
-                ? null
-                : () async {
-                    if (!formKey.currentState!.validate()) return;
-                    setState(() => isSaving = true);
-                    try {
-                      await ref.read(platformConfigControllerProvider.notifier).updateConfig(
-                            montant: int.parse(montantController.text),
-                            essaiJours: int.parse(essaiController.text),
-                          );
-                      if (context.mounted) Navigator.of(context).pop();
-                    } catch (_) {
-                      setState(() => isSaving = false);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Impossible de mettre à jour les réglages')),
-                        );
-                      }
-                    }
-                  },
-            child: isSaving
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 class _StatsGrid extends StatelessWidget {
   final PlatformStatistiques stats;
 
@@ -339,6 +246,15 @@ class _EntrepriseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      leading: Tooltip(
+        message: entreprise.estInstalle ? 'Bureau installé' : 'Bureau non installé',
+        child: Icon(
+          entreprise.estInstalle ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: entreprise.estInstalle
+              ? Colors.green
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
       title: Text(entreprise.nom),
       subtitle: Text(
         '${entreprise.devise} · ${entreprise.nbEmployes} employé(s) · '

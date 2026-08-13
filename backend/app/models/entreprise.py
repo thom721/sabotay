@@ -34,6 +34,15 @@ class Entreprise(SQLModel, table=True):
     # de config web dans ce repo pour l'instant, mais le mobile doit déjà
     # respecter cette valeur sans pouvoir la modifier).
     frais_retrait: Decimal = Field(default=Decimal("0"), max_digits=12, decimal_places=2)
+    # Vrai dès la première synchronisation réussie d'un poste bureau lié à
+    # cette entreprise (voir sync.py::_touch_sync_state) — jamais réglé
+    # manuellement à True. Un super-admin peut le repasser à False
+    # (POST /superadmin/entreprises/{id}/reinitialiser-installation) pour
+    # permettre une réinstallation : le prochain GET
+    # /entreprises/code-installation régénère alors automatiquement un
+    # nouveau code (aucun code non-utilisé ne subsiste après une
+    # installation réussie).
+    est_installe: bool = Field(default=False)
     date_creation: datetime = Field(default_factory=now_local)
     # Watermark de synchronisation (Phase 2) — mis à jour automatiquement par
     # SQLAlchemy à chaque UPDATE (onupdate), jamais réglé manuellement dans

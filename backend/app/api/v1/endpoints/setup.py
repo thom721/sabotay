@@ -107,9 +107,14 @@ async def connecter_au_cloud(
     settings.CLOUD_SYNC_URL = cloud_url
     settings.CLOUD_SYNC_TOKEN = token
 
+    from app.core import licence
     from app.services.local_sync_client import run_sync_cycle
 
     resultat = await run_sync_cycle()
+    # Peuple immédiatement le cache de licence (voir licence.abonnement_actif_local)
+    # — sans ça, la collecte resterait bloquée jusqu'au premier tick de la
+    # boucle de sync périodique (jusqu'à 60s après la fin de cet appel).
+    await licence.rafraichir_cache_local(session)
 
     nb_utilisateurs = (
         await session.execute(select(func.count()).select_from(Utilisateur))
