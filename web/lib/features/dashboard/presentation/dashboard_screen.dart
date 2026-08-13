@@ -36,10 +36,8 @@ class AdminDashboardScreen extends ConsumerWidget {
         ?.where((e) => e.role.name == 'agent' && e.statut == StatutUtilisateur.actif)
         .length;
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Tableau de bord',
-      currentRoute: '/admin',
-      navItems: adminNavItems,
       // Même fond que le dashboard pos_api (AppColors.background) — voir
       // aussi SuperAdminScaffold, qui applique la même chose côté superadmin.
       backgroundColor: const Color(0xFFF0F2F5),

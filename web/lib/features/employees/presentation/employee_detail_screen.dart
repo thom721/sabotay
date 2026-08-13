@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
 import '../../auth/domain/user.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../domain/employee.dart';
 import 'employee_list_controller.dart';
 
@@ -34,10 +33,8 @@ class EmployeeDetailScreen extends ConsumerWidget {
         ? null
         : _findEmployee(employeesAsync.valueOrNull!, employeeId);
 
-    return DashboardShell(
+    return DashboardContent(
       title: employee?.nomComplet ?? 'Employé',
-      currentRoute: '/admin/employes',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       child: employeesAsync.when(
         loading: () => const Padding(

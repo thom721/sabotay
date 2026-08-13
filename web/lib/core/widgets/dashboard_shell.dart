@@ -89,6 +89,87 @@ class DashboardShell extends ConsumerWidget {
   }
 }
 
+/// Coquille persistante pour l'espace admin, montée une seule fois par
+/// `ShellRoute` (voir app_router.dart) : le sidebar ne fait donc plus partie
+/// de la page qui change à chaque navigation — seul [DashboardContent]
+/// (le `child` fourni par ShellRoute) transitionne. Avant ce widget,
+/// chaque écran admin appelait [DashboardShell] indépendamment, ce qui
+/// reconstruisait le sidebar à chaque route et le faisait glisser avec le
+/// reste de la page pendant la transition.
+///
+/// `MediaQuery.sizeOf` plutôt que `LayoutBuilder` pour le calcul de largeur
+/// (ici et dans [DashboardContent]) : les deux doivent trancher isWide sur
+/// la même mesure (la fenêtre entière), pas sur leurs contraintes locales —
+/// [DashboardContent] ne voit que l'espace restant une fois le sidebar
+/// retiré, ce qui donnerait un seuil différent avec LayoutBuilder.
+class AdminShell extends ConsumerWidget {
+  final List<NavItem> navItems;
+  final Widget child;
+
+  const AdminShell({super.key, required this.navItems, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authControllerProvider).valueOrNull;
+    final currentRoute = GoRouterState.of(context).matchedLocation;
+    final isWide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+    final sidebar = _Sidebar(navItems: navItems, currentRoute: currentRoute, user: user);
+
+    return Scaffold(
+      appBar: isWide ? null : AppBar(title: const Text('SabotayPro')),
+      drawer: isWide ? null : Drawer(child: sidebar),
+      body: Row(
+        children: [
+          if (isWide) SizedBox(width: _sidebarWidth, child: sidebar),
+          if (isWide) VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outline),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// Contenu d'une page admin sous [AdminShell] : en-tête (masqué sur mobile,
+/// déjà dans l'AppBar du shell), bandeau licence, contenu défilant. C'est ce
+/// widget que chaque route admin retourne désormais (au lieu de
+/// [DashboardShell] directement) — lui seul transitionne à la navigation.
+class DashboardContent extends StatelessWidget {
+  final String title;
+  final Widget child;
+  final Widget? action;
+  final Color? backgroundColor;
+
+  const DashboardContent({
+    super.key,
+    required this.title,
+    required this.child,
+    this.action,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+
+    return Container(
+      color: backgroundColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isWide) _PageHeader(title: title, action: action),
+          const LicenceBanner(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PageHeader extends StatelessWidget {
   final String title;
   final Widget? action;

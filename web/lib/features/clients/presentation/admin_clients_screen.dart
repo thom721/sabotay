@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../employees/presentation/employee_list_controller.dart';
 import '../domain/client.dart';
 import 'add_client_sheet.dart';
@@ -39,10 +38,8 @@ class AdminClientsScreen extends ConsumerWidget {
       return employee?.nom ?? 'Non assigné';
     }
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Clients',
-      currentRoute: '/admin/clients',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       action: Row(
         mainAxisSize: MainAxisSize.min,

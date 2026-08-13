@@ -8,7 +8,6 @@ import '../../../core/widgets/dashboard_shell.dart';
 import '../../comptes/domain/compte_sabotay.dart';
 import '../../comptes/presentation/compte_providers.dart';
 import '../../comptes/presentation/create_compte_sheet.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../domain/client.dart';
 import 'client_list_controller.dart';
 
@@ -27,10 +26,8 @@ class ClientDetailScreen extends ConsumerWidget {
     final clientAsync = ref.watch(clientDetailProvider(clientId));
     final comptesAsync = ref.watch(clientComptesProvider(clientId));
 
-    return DashboardShell(
+    return DashboardContent(
       title: clientAsync.valueOrNull?.nomComplet ?? 'Client',
-      currentRoute: '/admin/clients',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       action: ElevatedButton.icon(
         onPressed: () => showCreateCompteSheet(context, clientId),

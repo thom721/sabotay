@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../data/entreprise_repository.dart';
 import '../domain/entreprise_profile.dart';
 import '../../auth/data/auth_repository.dart';
@@ -23,10 +22,8 @@ class EntrepriseProfileScreen extends ConsumerWidget {
     final currentUser = ref.watch(authControllerProvider).value;
     final isAdmin = currentUser?.role == RoleUtilisateur.admin;
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Entreprise',
-      currentRoute: '/admin/entreprise',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

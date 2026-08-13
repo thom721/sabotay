@@ -21,6 +21,7 @@ import '../../features/clients/presentation/admin_clients_screen.dart';
 import '../../features/clients/presentation/client_detail_screen.dart';
 import '../../features/clients/presentation/client_list_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../widgets/dashboard_shell.dart';
 import '../../features/employees/presentation/employee_detail_screen.dart';
 import '../../features/employees/presentation/employee_list_screen.dart';
 import '../../features/entreprise/presentation/entreprise_profile_screen.dart';
@@ -187,32 +188,44 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: _forcePasswordChangeRoute,
         builder: (context, state) => const ForcePasswordChangeScreen(),
       ),
-      GoRoute(path: '/admin', builder: (context, state) => const AdminDashboardScreen()),
-      GoRoute(
-        path: '/admin/employes',
-        builder: (context, state) => const EmployeeListScreen(),
-      ),
-      GoRoute(
-        path: '/admin/employes/:employeeId',
-        builder: (context, state) =>
-            EmployeeDetailScreen(employeeId: state.pathParameters['employeeId']!),
-      ),
-      GoRoute(
-        path: '/admin/clients',
-        builder: (context, state) => const AdminClientsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/clients/:clientId',
-        builder: (context, state) =>
-            ClientDetailScreen(clientId: state.pathParameters['clientId']!),
-      ),
-      GoRoute(
-        path: '/admin/entreprise',
-        builder: (context, state) => const EntrepriseProfileScreen(),
-      ),
-      GoRoute(
-        path: '/admin/abonnement',
-        builder: (context, state) => const AbonnementScreen(),
+      // ShellRoute : AdminShell (sidebar + séparateur) est monté une seule
+      // fois et persiste à travers ces routes — seul le `child` (le contenu
+      // DashboardContent de chaque écran) est reconstruit et transitionne à
+      // la navigation. Avant ce ShellRoute, chaque GoRoute construisait sa
+      // propre DashboardShell indépendante, ce qui reconstruisait aussi le
+      // sidebar à chaque clic et le faisait glisser avec le reste de la page
+      // pendant l'animation de transition.
+      ShellRoute(
+        builder: (context, state, child) => AdminShell(navItems: adminNavItems, child: child),
+        routes: [
+          GoRoute(path: '/admin', builder: (context, state) => const AdminDashboardScreen()),
+          GoRoute(
+            path: '/admin/employes',
+            builder: (context, state) => const EmployeeListScreen(),
+          ),
+          GoRoute(
+            path: '/admin/employes/:employeeId',
+            builder: (context, state) =>
+                EmployeeDetailScreen(employeeId: state.pathParameters['employeeId']!),
+          ),
+          GoRoute(
+            path: '/admin/clients',
+            builder: (context, state) => const AdminClientsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/clients/:clientId',
+            builder: (context, state) =>
+                ClientDetailScreen(clientId: state.pathParameters['clientId']!),
+          ),
+          GoRoute(
+            path: '/admin/entreprise',
+            builder: (context, state) => const EntrepriseProfileScreen(),
+          ),
+          GoRoute(
+            path: '/admin/abonnement',
+            builder: (context, state) => const AbonnementScreen(),
+          ),
+        ],
       ),
       GoRoute(path: '/manager', builder: (context, state) => const ManagerDashboardScreen()),
       GoRoute(path: '/agent', builder: (context, state) => const ClientListScreen()),

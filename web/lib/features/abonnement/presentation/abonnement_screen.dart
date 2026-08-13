@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../data/abonnement_repository.dart';
 import '../domain/abonnement.dart';
 import 'recu_abonnement_pdf.dart';
@@ -26,10 +25,8 @@ class AbonnementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final abonnementAsync = ref.watch(abonnementProvider);
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Abonnement',
-      currentRoute: '/admin/abonnement',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       child: abonnementAsync.when(
         loading: () => const Padding(

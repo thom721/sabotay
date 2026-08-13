@@ -7,7 +7,6 @@ import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
 import '../../auth/domain/user.dart';
 import '../../auth/presentation/auth_controller.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import '../domain/employee.dart';
 import 'change_role_sheet.dart';
 import 'employee_list_controller.dart';
@@ -30,10 +29,8 @@ class EmployeeListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final employeesAsync = ref.watch(employeeListControllerProvider);
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Employés',
-      currentRoute: '/admin/employes',
-      navItems: adminNavItems,
       backgroundColor: const Color(0xFFF0F2F5),
       action: Row(
         mainAxisSize: MainAxisSize.min,
