@@ -7,6 +7,7 @@ class StatCard extends StatelessWidget {
   final String label;
   final String value;
   final Color? accentColor;
+  final bool dense;
 
   const StatCard({
     super.key,
@@ -14,6 +15,7 @@ class StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.accentColor,
+    this.dense = false,
   });
 
   @override
@@ -24,13 +26,13 @@ class StatCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(dense ? 14 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: accent),
+                Icon(icon, size: dense ? 16 : 18, color: accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -47,8 +49,8 @@ class StatCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(value, style: AppTheme.statNumberStyle(context)),
+            SizedBox(height: dense ? 8 : 14),
+            Text(value, style: AppTheme.statNumberStyle(context, fontSize: dense ? 20 : 28)),
           ],
         ),
       ),

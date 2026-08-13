@@ -25,6 +25,7 @@ class SuperAdminScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: leading,
         title: Text(title),
