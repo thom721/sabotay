@@ -9,3 +9,11 @@ dist/
 *.db
 *.log
 .env
+
+# Spécifique au binaire desktop compilé (Epic 5, Windows/macOS) —
+# jamais utilisé par le conteneur, qui lance app.main:app via gunicorn.
+run.py
+server_main.py
+service_wrapper.py
+scripts/
+.env.example
