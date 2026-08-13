@@ -129,10 +129,14 @@ class AdminShell extends ConsumerWidget {
   }
 }
 
-/// Contenu d'une page admin sous [AdminShell] : en-tête (masqué sur mobile,
-/// déjà dans l'AppBar du shell), bandeau licence, contenu défilant. C'est ce
-/// widget que chaque route admin retourne désormais (au lieu de
-/// [DashboardShell] directement) — lui seul transitionne à la navigation.
+/// Contenu d'une page admin sous [AdminShell] : en-tête (titre + action,
+/// toujours affiché — le titre de l'AppBar mobile du shell est générique
+/// "SabotayPro", pas le titre de la page, et surtout `action` n'existe nulle
+/// part ailleurs sur mobile : le cacher ici rendait des boutons comme
+/// "Ajouter un client" totalement inaccessibles en dessous de 900px),
+/// bandeau licence, contenu défilant. C'est ce widget que chaque route admin
+/// retourne désormais (au lieu de [DashboardShell] directement) — lui seul
+/// transitionne à la navigation.
 class DashboardContent extends StatelessWidget {
   final String title;
   final Widget child;
@@ -149,14 +153,12 @@ class DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
-
     return Container(
       color: backgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (isWide) _PageHeader(title: title, action: action),
+          _PageHeader(title: title, action: action),
           const LicenceBanner(),
           Expanded(
             child: SingleChildScrollView(
@@ -183,8 +185,15 @@ class _PageHeader extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      // Wrap plutôt que Row : sur un écran étroit, titre + action (souvent
+      // un bouton avec libellé, ex. "Ajouter un client") ne tiennent pas
+      // toujours sur une seule ligne — Wrap passe l'action à la ligne
+      // suivante au lieu de déborder hors de l'écran.
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
         children: [
           Text(title, style: Theme.of(context).textTheme.headlineSmall),
           if (action != null) action!,
