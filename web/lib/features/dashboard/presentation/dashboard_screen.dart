@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/dashboard_shell.dart';
+import '../../../core/widgets/pos_style_stat_card.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../clients/domain/client.dart';
@@ -39,6 +40,9 @@ class AdminDashboardScreen extends ConsumerWidget {
       title: 'Tableau de bord',
       currentRoute: '/admin',
       navItems: adminNavItems,
+      // Même fond que le dashboard pos_api (AppColors.background) — voir
+      // aussi SuperAdminScaffold, qui applique la même chose côté superadmin.
+      backgroundColor: const Color(0xFFF0F2F5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,34 +56,43 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
           LayoutBuilder(
             builder: (context, constraints) {
-              final columns = constraints.maxWidth > 860 ? 4 : (constraints.maxWidth > 560 ? 2 : 1);
+              // Mêmes seuils/ratios que _ResponsiveGrid de pos_api
+              // (core/responsive.dart : AppBreakpoints.xl=1100, .md=480).
+              final columns =
+                  constraints.maxWidth >= 1100 ? 4 : (constraints.maxWidth >= 480 ? 2 : 1);
+              final ratio =
+                  constraints.maxWidth >= 1100 ? 2.2 : (constraints.maxWidth >= 480 ? 2.0 : 3.2);
               return GridView.count(
                 crossAxisCount: columns,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: columns == 1 ? 2.6 : 1.5,
+                childAspectRatio: ratio,
                 children: [
-                  const StatCard(
+                  const PosStyleStatCard(
                     icon: Icons.payments_outlined,
                     label: 'Total collecté (mois)',
                     value: '—',
+                    color: Color(0xFF0077C5),
                   ),
-                  StatCard(
+                  PosStyleStatCard(
                     icon: Icons.groups_outlined,
                     label: 'Clients actifs',
                     value: clientsActifs?.toString() ?? '—',
+                    color: const Color(0xFF3182CE),
                   ),
-                  const StatCard(
+                  const PosStyleStatCard(
                     icon: Icons.warning_amber_outlined,
                     label: 'Taux de retard',
                     value: '—',
+                    color: Color(0xFFD69E2E),
                   ),
-                  StatCard(
+                  PosStyleStatCard(
                     icon: Icons.badge_outlined,
                     label: 'Agents actifs',
                     value: agentsActifs?.toString() ?? '—',
+                    color: const Color(0xFF2CA01C),
                   ),
                 ],
               );

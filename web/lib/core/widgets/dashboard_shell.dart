@@ -27,6 +27,10 @@ class DashboardShell extends ConsumerWidget {
   final List<NavItem> navItems;
   final Widget child;
   final Widget? action;
+  // Optionnel — laisse le fond du thème par défaut si non fourni, pour ne
+  // pas changer l'apparence des écrans qui ne le demandent pas explicitement
+  // (voir AdminDashboardScreen, seul écran à le passer pour l'instant).
+  final Color? backgroundColor;
 
   const DashboardShell({
     super.key,
@@ -35,6 +39,7 @@ class DashboardShell extends ConsumerWidget {
     required this.navItems,
     required this.child,
     this.action,
+    this.backgroundColor,
   });
 
   @override
@@ -47,6 +52,7 @@ class DashboardShell extends ConsumerWidget {
         final sidebar = _Sidebar(navItems: navItems, currentRoute: currentRoute, user: user);
 
         return Scaffold(
+          backgroundColor: backgroundColor,
           appBar: isWide ? null : AppBar(title: Text(title)),
           drawer: isWide ? null : Drawer(child: sidebar),
           body: Row(
