@@ -23,7 +23,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  String _canal = 'sms';
+  // 'email' par défaut, pas 'sms' : Twilio n'est pas configuré en
+  // production, seul le SMTP (Superadmin → Paramètres → SMTP Config) l'est
+  // sans redéploiement — voir notifications.py::send_sms/send_email.
+  String _canal = 'email';
   bool _obscurePassword = true;
 
   @override
@@ -126,8 +129,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'sms', label: Text('SMS')),
               ButtonSegment(value: 'email', label: Text('Email')),
+              ButtonSegment(value: 'sms', label: Text('SMS')),
             ],
             selected: {_canal},
             onSelectionChanged: isLoading
