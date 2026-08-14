@@ -45,6 +45,7 @@ dependencies:
   pdf: ^3.13.0
   printing: ^5.15.0
   cryptography: ^2.7.0
+  fl_chart: ^0.69.0
   flutter_localizations:
     sdk: flutter
   flutter_web_plugins:

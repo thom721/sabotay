@@ -215,7 +215,7 @@ class _Sidebar extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      color: colorScheme.surfaceVariant,
+      color: Colors.white,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

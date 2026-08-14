@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/dashboard_shell.dart';
 import '../../../core/widgets/pos_style_stat_card.dart';
@@ -9,6 +10,8 @@ import '../../clients/domain/client.dart';
 import '../../clients/presentation/client_list_controller.dart';
 import '../../employees/domain/employee.dart';
 import '../../employees/presentation/employee_list_controller.dart';
+import '../data/dashboard_repository.dart';
+import 'statistiques_chart_card.dart';
 
 const adminNavItems = [
   NavItem(icon: Icons.space_dashboard_outlined, label: 'Tableau de bord', route: '/admin'),
@@ -17,6 +20,8 @@ const adminNavItems = [
   NavItem(icon: Icons.storefront_outlined, label: 'Entreprise', route: '/admin/entreprise'),
   NavItem(icon: Icons.receipt_long_outlined, label: 'Abonnement', route: '/admin/abonnement'),
 ];
+
+final _montantFormat = NumberFormat('#,##0.##');
 
 const managerNavItems = [
   NavItem(icon: Icons.space_dashboard_outlined, label: 'Tableau de bord', route: '/manager'),
@@ -30,6 +35,7 @@ class AdminDashboardScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final clients = ref.watch(clientListControllerProvider).valueOrNull;
     final employees = ref.watch(employeeListControllerProvider).valueOrNull;
+    final montantCollecteMois = ref.watch(montantCollecteMoisProvider).valueOrNull;
 
     final clientsActifs = clients?.where((c) => c.statut == StatutClient.actif).length;
     final agentsActifs = employees
@@ -68,11 +74,13 @@ class AdminDashboardScreen extends ConsumerWidget {
                 crossAxisSpacing: 12,
                 childAspectRatio: ratio,
                 children: [
-                  const PosStyleStatCard(
+                  PosStyleStatCard(
                     icon: Icons.payments_outlined,
                     label: 'Total collecté (mois)',
-                    value: '—',
-                    color: Color(0xFF0077C5),
+                    value: montantCollecteMois != null
+                        ? '${_montantFormat.format(montantCollecteMois)} HTG'
+                        : '—',
+                    color: const Color(0xFF0077C5),
                   ),
                   PosStyleStatCard(
                     icon: Icons.groups_outlined,
@@ -98,13 +106,15 @@ class AdminDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Le total collecté et le taux de retard nécessitent les rapports financiers '
-            '(à venir) — les autres chiffres sont en direct.',
+            'Le taux de retard nécessite les rapports financiers (à venir) — '
+            'les autres chiffres sont en direct.',
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 24),
+          const StatistiquesChartCard(),
         ],
       ),
     );

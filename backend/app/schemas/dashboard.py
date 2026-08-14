@@ -16,3 +16,14 @@ class DashboardStatistiquesRead(SQLModel):
     nb_transactions_payees_mois: int
     velocite_7_jours: list[VelociteJournaliereRead]
     transactions_recentes: list[TransactionRead]
+
+
+class PointSerieTemporelleRead(SQLModel):
+    label: str
+    montant_collecte: Decimal
+    montant_retrait: Decimal
+    nb_nouveaux_clients: int
+
+
+class SerieTemporelleRead(SQLModel):
+    points: list[PointSerieTemporelleRead]
