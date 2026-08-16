@@ -1,8 +1,8 @@
 # PRD — SabotayPro
 ### Plateforme SaaS de gestion d'épargne rotative (Sabotay/Sol) pour institutions financières informelles
 
-**Version :** 1.3 (Draft)
-**Date :** 29 juillet 2026 (mise à jour le 1 août 2026 — §5.3, §13, §8.2, §8.3, §8.5, §8.8 ; mise à jour le 5 août 2026 — §7.5, §8.3, §8.4, §8.8, §10)
+**Version :** 1.4 (Draft)
+**Date :** 29 juillet 2026 (mise à jour le 1 août 2026 — §5.3, §13, §8.2, §8.3, §8.5, §8.8 ; mise à jour le 5 août 2026 — §7.5, §8.3, §8.4, §8.8, §10 ; mise à jour le 16 août 2026 — §8.9)
 **Statut :** À valider
 
 ---
@@ -195,9 +195,10 @@ Le système identifie automatiquement les comptes en retard (jours manqués cumu
 - Lecture seule (aucune modification possible côté client en MVP)
 
 ### 8.9 Facturation SaaS
-- Plans d'abonnement par palier (ex. selon nombre de clients actifs gérés)
-- Page de facturation simple pour l'Admin Entreprise
-- Période d'essai gratuit configurable
+- Plans d'abonnement par palier (ex. selon nombre de clients actifs gérés) — *toujours à valider (§11), pas encore implémenté : ce qui existe est un prix annuel unique, configurable par le super-admin (`PlatformConfig`), pas de paliers*
+- Page de facturation simple pour l'Admin Entreprise — implémenté (écran Abonnement, historique des paiements, reçu imprimable)
+- Période d'essai gratuit configurable — implémenté (`PlatformConfig.essai_jours`)
+- **Deux modes de paiement implémentés** : MonCash (automatique, vérification en ligne) et espèces (déclaration par l'Admin Entreprise, confirmée manuellement par le super-admin avant activation — voir EPICS.md Epic 13). Pas dans la portée MVP d'origine (§5.2, "collecte reste 100% cash" — qui concerne la collecte agent↔client, pas la facturation SaaS entreprise↔plateforme, sans rapport).
 
 ---
 

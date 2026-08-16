@@ -113,7 +113,7 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 
 ---
 
-## Epic 7 — Code d'installation bureau 🟡 Backend + consommation terminés, génération sans UI
+## Epic 7 — Code d'installation bureau ✅ Terminé
 
 **Objectif** : permettre de lier un poste local au cloud avec un simple code à saisir (`ABCD-EFGH-IJKL`) plutôt que de taper email/mot de passe sur la machine du client — même pattern que pos_api (`InstallationCode`), demandé explicitement par l'utilisateur.
 
@@ -122,7 +122,7 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 - `POST /sync/redeem-code` (public, pas d'auth) : échange un code contre un jeton de sync (365 jours, identique à `POST /sync/token`), 404 si code invalide, 409 si déjà utilisé.
 - **Consommation côté poste local terminée** — voir Epic 5f (`SetupBureauScreen`, `POST /setup/connecter`).
 - **Testé de bout en bout via curl** : génération idempotente, échange réussi → jeton valide pour `/sync/pull`, réutilisation → 409, régénération → ancien code (non utilisé) supprimé, historique des codes utilisés conservé en base.
-- **Reste à faire** : aucune UI web pour la *génération* — `Admin → Entreprise` n'affiche pas encore ce code (l'écran qui le *consomme*, côté poste local, existe désormais ; celui qui le *montre*, côté cloud, non).
+- **UI de génération ajoutée (session ultérieure)** : carte "Installation bureau" sur `Admin → Entreprise` (`entreprise_profile_screen.dart`, visible Admin uniquement — le backend exige déjà `require_roles(ADMIN)`) — affiche le code courant, bouton copier, bouton régénérer avec confirmation. Épic fermé : génération et consommation ont désormais toutes les deux une UI.
 
 ---
 
@@ -189,6 +189,66 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 - Fiche détail entreprise (super-admin) : même section + impression, avec un `EntrepriseProfile` minimal reconstruit depuis `EntrepriseSuperAdminRead` (pas de jeton staff côté super-admin, donc pas d'accès à `GET /entreprises/profil` — seuls nom/devise garantis, le reste (adresse, texte bas de reçu) reste vide sur ce reçu-là).
 - **Bugs UUID réels trouvés au passage** (oubliés lors du sweep de l'Epic 3, round 2) : `Abonnement.id` et `EntrepriseProfile.id` (web **et** mobile) étaient encore typés `int` alors que le backend renvoie un UUID depuis la migration `0021` — `GET /entreprises/profil` (appelé par tout écran de reçu) aurait planté au premier appel. Corrigés ; balayage complet (`grep "as int"`) confirmant qu'aucun autre champ d'id n'a été oublié.
 - `flutter analyze`/`test`/`build web` propres (web et mobile).
+
+---
+
+## Epic 12 — Déploiement Docker en production ✅ Terminé
+
+**Objectif** : passer du poste de dev à un vrai VPS de production, avec nginx déjà installé au niveau système (partagé avec d'autres sites) — demandé explicitement, avec le docker-compose réel d'un autre projet du même utilisateur (`/opt/post`) comme référence de structure à reproduire (Postgres à la place de MySQL).
+
+- `deploiement/` à la racine : `docker-compose.yml` (services `postgres` + `backend`, réseaux `sabotay_internal` (bridge, interne) + `proxy_net` (externe, partagé au niveau VPS)), `.env` (placeholders uniquement — jamais de vraies valeurs commitées), `nginx/sabotay.conf` (fichier de site système, **pas** conteneurisé — à copier manuellement dans `/etc/nginx/sites-available/` sur l'hôte, chemins de certificats standard certbot).
+- `backend/Dockerfile` : gunicorn + `uvicorn.workers.UvicornWorker` (4 workers), `alembic upgrade head` exécuté automatiquement avant le démarrage (un seul conteneur, pas de risque de migrations concurrentes), logs fichier (`/app/logs/access.log`/`error.log` — **pas** sur stdout, donc invisibles via `docker compose logs`, seulement via `docker exec ... tail /app/logs/*.log`). `backend/.dockerignore` exclut les fichiers spécifiques au binaire desktop compilé (`run.py`, `server_main.py`, `service_wrapper.py`, `scripts/`) — jamais utilisés par le conteneur.
+- Le backend n'est publié que sur `127.0.0.1` (jamais `0.0.0.0`) — seul le nginx système, hors Docker, peut l'atteindre. Port choisi : **9008** (9004 initialement, changé après un conflit de port réel sur le VPS avec un process déjà en écoute — aligné en interne *et* en externe, y compris dans le `Dockerfile`/gunicorn `--bind`, pour éviter tout mapping hôte↔conteneur incohérent).
+- `Settings.CORS_ORIGINS`/`cors_origins_list` — passait d'un `allow_origins=["*"]` codé en dur à une liste configurable par variable d'environnement.
+- **Bug réel trouvé et corrigé** : `web/lib/core/config/env.dart::apiBaseUrl` n'avait de repli correct que pour le binaire desktop (`127.0.0.1:9004`) — en web navigateur, sans `--dart-define=API_BASE_URL` (jamais passé par la CI), l'app appelait toujours `127.0.0.1:9004` depuis le poste du **visiteur**, pas le VPS. Corrigé en deux temps : chemin relatif `/api/v1` (résolu sur le même domaine via le proxy nginx) en prod, **et** détection explicite de `localhost`/`127.0.0.1` pour retomber sur `127.0.0.1:9004` en dev local (`flutter run -d chrome`, qui n'a aucun proxy vers le backend) — sans cette deuxième branche, le dev local aurait cassé à son tour après le premier correctif.
+- **Vérifié en conditions réelles sur le VPS visé** (pas seulement en local) : build Docker réel, `alembic upgrade head` rejoué proprement depuis une base vide, `curl .../health` → 200, création du premier compte super-admin via `/superadmin/premier-compte` réellement testée en production.
+- **Reste à faire** : `WIN_CODESIGN_PFX_BASE64`/`WIN_CODESIGN_PFX_PASSWORD`/`INFINI_SOFTWARE_RELEASE_TOKEN` toujours pas configurés côté GitHub (voir Epic 5d/5e) — le tag `v0.2.0` poussé cette session a de nouveau échoué sur l'étape Inno Setup pour cette raison, le reste du pipeline passe.
+
+---
+
+## Epic 13 — Paiement en espèces pour l'abonnement ✅ Terminé
+
+**Objectif** : ajouter un deuxième mode de paiement de l'abonnement (en plus de MonCash), même principe que pos_api (`BillingPayment.method`, déclaration tenant → confirmation superadmin) — marché haïtien, beaucoup de paiements se font encore en espèces de la main à la main.
+
+- `PaiementAbonnement` (migration `0027`) : `methode` (`moncash`|`especes`), `statut` (`confirme`|`en_attente`|`rejete`). Une déclaration espèces reste `en_attente` — **l'abonnement ne s'active jamais à la seule déclaration**, seulement à la confirmation (sinon n'importe qui pourrait s'auto-activer sans payer).
+- `POST /abonnement/declarer-especes` (tenant, Admin) ; `POST /superadmin/paiements/{id}/confirmer|rejeter` ; `GET /superadmin/paiements-en-attente` (vue globale toutes entreprises confondues — sans elle, un paiement en attente n'était visible qu'en ouvrant la fiche de l'entreprise correspondante une par une, aucun moyen de le retrouver sans déjà savoir qui l'a déclaré).
+- Web : bouton "Payer en espèces" (écran Abonnement, tenant) ; boutons Confirmer/Rejeter (fiche entreprise superadmin **et** nouvel onglet "Paiements en attente" dans Paramètres superadmin).
+- **Bug réel trouvé et corrigé** : `Abonnement.montant` n'était jamais resynchronisé au moment de la confirmation (espèces **ou** MonCash) — si le prix plateforme changeait entre deux paiements, la carte "Plan" du tenant pouvait afficher un montant différent de celui réellement payé dans l'historique. Corrigé aux deux endroits (`confirmer_paiement`, `verifier_abonnement`).
+- Reçu d'abonnement (`recu_abonnement_pdf.dart`) refait en facture A4 pleine page (numéro, date, blocs De/Facturé à, détail, sous-total/total) au lieu du format thermique 58/80mm hérité des reçus de collecte — un abonnement annuel B2B se documente comme une facture. Nécessite `initializeDateFormatting('fr')` au démarrage (`main.dart`) pour le format de date en toutes lettres, sinon `LocaleDataException` au premier reçu imprimé.
+
+---
+
+## Epic 14 — Refonte visuelle façon pos_api ✅ Terminé
+
+**Objectif** : demande explicite et répétée de reproduire le style visuel de pos_api (dashboards, cartes, modaux, formulaires) plutôt que le thème d'origine.
+
+- **Dashboards** (superadmin et admin tenant) : fond `#F0F2F5` (au lieu du fond crème du thème), `PosStyleStatCard` (`core/widgets/`, widget partagé) — icône colorée dans un carré arrondi à gauche, label/valeur à droite, reproduction fidèle de `pos_api/frontend/lib/shared/widgets/stat_card.dart`. Mêmes seuils/ratios de grille responsive que `_ResponsiveGrid` de pos_api (xl=1100px→4 colonnes, md=480px→2, sinon 1).
+- **Modaux** : les 6 formulaires "bottom sheet" (Ajouter un client, Assigner agent, Nouveau compte Sabotay, Rôle employé, Inviter employé, Nouveau compte superadmin) convertis en `AlertDialog` centrées (`showDialog` au lieu de `showModalBottomSheet`/`DraggableScrollableSheet`) — même structure que `CustomerFormDialog` de pos_api. `DialogThemeData` ajouté au thème global (fond blanc pur, `surfaceTintColor: transparent`) — Material 3 utilise sinon `surfaceContainerHigh`, une surface tonale teintée par défaut.
+- **Inputs** : `inputDecorationTheme` global refait (fond blanc `colorScheme.surface`, bordure fine `#E2E8F0` en mode clair — littérale, pas `colorScheme.outline` qui est teinté chaud par le seed doré —, radius 8) — s'applique à toute l'app d'un coup, plus besoin de style local par écran.
+- **Sidebar admin persistant** (`ShellRoute`, `app_router.dart` + `AdminShell`/`DashboardContent` dans `core/widgets/dashboard_shell.dart`) : avant ce changement, chaque écran admin construisait sa propre coquille avec sidebar inclus, reconstruite à chaque navigation — le sidebar entier glissait avec le contenu pendant la transition de page. Le sidebar est maintenant monté une seule fois par le `ShellRoute`, seul le contenu de la page transitionne.
+- **Bugs réels trouvés et corrigés en cours de route** :
+  - Fiche entreprise superadmin plantait systématiquement (`Impossible de charger cette entreprise`) — `SuperAdminUtilisateur.prenom` castait `as String` côté web alors que le champ est nullable côté backend, dès qu'un utilisateur n'a pas de prénom renseigné. Reproduit et confirmé en appelant l'endpoint directement en Python (aucune exception serveur — le bug était uniquement dans le parsing JSON côté web).
+  - Boutons d'action ("Ajouter un client", etc.) totalement invisibles en dessous de 900px — l'en-tête de page (titre + action) n'était affiché que sur desktop (`if (isWide)`), et l'AppBar mobile du shell n'avait accès qu'à un titre générique, jamais à `action`. Affiché maintenant à toutes les largeurs, en `Wrap` plutôt qu'en `Row` fixe pour ne pas déborder sur un petit écran.
+  - Section "Tarification"/"SMTP Config" (Paramètres superadmin) et fiche entreprise superadmin : chaque état vide (`EmptyState`) flottait directement sur le fond gris de la page — enveloppé dans une Card blanche comme les états non-vides.
+
+---
+
+## Epic 15 — Graphique de statistiques (tableau de bord Admin) ✅ Terminé
+
+**Objectif** : visualiser la collecte, les retraits et la variation du nombre de clients, avec un sélecteur de période (jour/semaine/mois/année) — demandé explicitement.
+
+- `GET /dashboard/serie-temporelle?periode=jour|semaine|mois|annee` — buckets jour (14 derniers, un point par jour) et semaine (8 dernières, fenêtres glissantes de 7 jours) en fenêtre glissante ; mois (12 derniers) et année (5 dernières) alignés sur le calendrier (plus lisible : "Août 2026" plutôt qu'une fenêtre de 30 jours arbitraire). Chaque bucket : montant collecté, montant retiré, nombre de nouveaux clients.
+- Web : `StatistiquesChartCard` (`fl_chart`, nouvelle dépendance) — sélecteur de période façon pos_api, un `LineChart` collecte/retrait (deux courbes, même échelle HTG) et un `BarChart` nouveaux clients en dessous. Câble au passage "Total collecté (mois)" (`GET /dashboard/statistiques`, endpoint déjà existant mais jamais consommé côté web — n'affichait qu'un tiret jusqu'ici).
+- **Vérifié directement en local** (appel Python direct de l'endpoint, comme pour les autres diagnostics de cette session) : les 4 périodes produisent le bon nombre de buckets et les bons labels.
+
+---
+
+## Epic 16 — Déconnexion automatique sur session expirée ✅ Terminé
+
+**Objectif** : `ACCESS_TOKEN_EXPIRE_MINUTES` (60 min par défaut) fait qu'un token expire en cours de session normale — jusqu'ici, chaque écran affichait son propre message d'erreur générique et trompeur ("Impossible de créer le client", "Impossible de charger les statistiques") au lieu d'indiquer la vraie cause. Trouvé deux fois de suite en diagnostiquant des "bugs" en production qui n'en étaient pas (confirmé via les logs d'accès nginx/gunicorn : `401` sur les requêtes concernées, pas 500).
+
+- Intercepteur `onError` ajouté aux deux clients Dio (staff et superadmin, `core/network/api_client.dart`) : un `401` en dehors de `/auth/login`/`/auth/superadmin-login` (où 401 = identifiants invalides, pas session expirée) déclenche directement `logout()` — le routeur renvoie alors vers l'écran de connexion via `_AuthRefreshNotifier`.
+- Au passage : canal par défaut de "Mot de passe oublié" changé de SMS (Twilio, jamais configuré en prod → tombe dans un repli qui journalise seulement, jamais reçu) à Email (SMTP configurable sans redéploiement depuis Superadmin → Paramètres → SMTP Config, voir Epic 9).
 
 ---
 
