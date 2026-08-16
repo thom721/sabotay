@@ -20,7 +20,10 @@ class ClientListController extends AsyncNotifier<List<Client>> {
     state = await AsyncValue.guard(() => ref.read(clientRepositoryProvider).list());
   }
 
-  Future<void> addClient({
+  /// Retourne le client créé — l'appelant en a besoin pour afficher le mot
+  /// de passe temporaire si l'email de bienvenue n'a pas pu être livré
+  /// (voir `Client.motDePasseTemporaire`).
+  Future<Client> addClient({
     required String nom,
     required String prenom,
     required String telephone,
@@ -33,7 +36,7 @@ class ClientListController extends AsyncNotifier<List<Client>> {
     String? heritierAdresse,
     String? heritierTelephone,
   }) async {
-    await ref.read(clientRepositoryProvider).create(
+    final client = await ref.read(clientRepositoryProvider).create(
           nom: nom,
           prenom: prenom,
           telephone: telephone,
@@ -47,6 +50,7 @@ class ClientListController extends AsyncNotifier<List<Client>> {
           heritierTelephone: heritierTelephone,
         );
     await refresh();
+    return client;
   }
 
   Future<void> assignAgent(String clientId, String? agentId) async {

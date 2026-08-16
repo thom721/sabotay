@@ -25,12 +25,16 @@ async def send_sms(to: str, message: str) -> None:
     await asyncio.to_thread(_send)
 
 
-async def send_email(to: str, subject: str, body: str) -> None:
+async def send_email(to: str, subject: str, body: str) -> bool:
     """Envoie un email via SMTP. Configuration lue dynamiquement depuis
     `PlatformConfig` (Paramètres → Email, super-admin) — modifiable sans
     redéploiement, contrairement à settings.SMTP_* (.env), gardées en repli
     uniquement si la base n'a rien de configuré (ex. dev). Journalise le
-    message au lieu d'échouer si ni l'un ni l'autre n'est configuré."""
+    message au lieu d'échouer si ni l'un ni l'autre n'est configuré.
+
+    Retourne True si le message a réellement été remis au serveur SMTP,
+    False s'il n'a été que journalisé (SMTP non configuré) — permet à
+    l'appelant de savoir si le destinataire a une chance de l'avoir reçu."""
     from sqlmodel import select
 
     from app.core.db import async_session_maker
@@ -48,7 +52,7 @@ async def send_email(to: str, subject: str, body: str) -> None:
 
     if not (smtp_host and smtp_from):
         logger.info("[Email fallback] to=%s subject=%s: %s", to, subject, body)
-        return
+        return False
 
     message = EmailMessage()
     message["From"] = smtp_from
@@ -64,3 +68,4 @@ async def send_email(to: str, subject: str, body: str) -> None:
         password=smtp_password,
         start_tls=True,
     )
+    return True

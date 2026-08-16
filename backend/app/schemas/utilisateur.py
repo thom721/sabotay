@@ -40,3 +40,7 @@ class UtilisateurRead(SQLModel):
     role: RoleUtilisateur
     statut: StatutUtilisateur
     derniere_connexion: datetime | None
+    # Présents uniquement juste après la création (voir crud/utilisateur.py)
+    # — None sur toute lecture ultérieure de l'employé.
+    email_envoye: bool | None = None
+    mot_de_passe_temporaire: str | None = None

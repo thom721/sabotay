@@ -19,6 +19,12 @@ from app.schemas.entreprise import EntrepriseProfilUpdate, EntrepriseRead, Entre
 
 router = APIRouter(prefix="/entreprises", tags=["entreprises"])
 
+# Le logo est stocké en data URI (pas de fichier sur disque, voir
+# models/entreprise.py::logo_data) — plafond généreux pour un logo
+# d'entreprise (~1.4 Mo encodé ≈ 1 Mo décodé) : évite qu'un upload
+# disproportionné n'alourdisse la base et la synchronisation cloud⇄local.
+_TAILLE_MAX_LOGO_DATA = 1_400_000
+
 
 @router.post("/register", response_model=EntrepriseRead, status_code=status.HTTP_201_CREATED)
 async def register_entreprise(
@@ -134,6 +140,12 @@ async def update_profil_entreprise(
     entreprise_id: TenantId,
 ) -> Entreprise:
     """Mise à jour partielle du profil entreprise (Admin uniquement)."""
+    if payload.logo_data is not None and len(payload.logo_data) > _TAILLE_MAX_LOGO_DATA:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Logo trop volumineux (max ~1 Mo)",
+        )
+
     entreprise = await session.get(Entreprise, entreprise_id)
     if entreprise is None:
         raise HTTPException(

@@ -77,8 +77,8 @@ Future<Uint8List> _buildRecuPdf({
             _ligne('Jours payés', '${transaction.nbJours ?? 1}'),
             _ligne('Montant', '${_amountFormat.format(transaction.montant)} ${entreprise.devise}'),
           ],
-          _ligne('Collecté par', transaction.collecteParNom),
-          _ligne('Reçu N°', 'TR-${transaction.id}'),
+          _ligne(isRetrait ? 'Traité par' : 'Collecté par', transaction.collecteParNom),
+          _ligne('Reçu N°', transaction.numero),
           pw.Divider(),
           if (entreprise.texteBasRecu != null && entreprise.texteBasRecu!.isNotEmpty) ...[
             pw.SizedBox(height: 4),
@@ -136,7 +136,7 @@ Future<void> imprimerRecu(
     );
     await Printing.layoutPdf(
       onLayout: (_) async => pdfBytes,
-      name: 'Recu-TR-${transaction.id}',
+      name: 'Recu-${transaction.numero}',
     );
   } catch (_) {
     if (context.mounted) {

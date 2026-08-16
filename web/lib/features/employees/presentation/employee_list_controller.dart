@@ -18,7 +18,10 @@ class EmployeeListController extends AsyncNotifier<List<Employee>> {
     state = await AsyncValue.guard(() => ref.read(employeeRepositoryProvider).list());
   }
 
-  Future<void> invite({
+  /// Retourne l'employé créé — l'appelant en a besoin pour afficher le mot
+  /// de passe temporaire si l'email de bienvenue n'a pas pu être livré
+  /// (voir `Employee.motDePasseTemporaire`).
+  Future<Employee> invite({
     required String nom,
     required String prenom,
     required String telephone,
@@ -28,7 +31,7 @@ class EmployeeListController extends AsyncNotifier<List<Employee>> {
     String? adresse,
     required RoleUtilisateur role,
   }) async {
-    await ref.read(employeeRepositoryProvider).invite(
+    final employee = await ref.read(employeeRepositoryProvider).invite(
           nom: nom,
           prenom: prenom,
           telephone: telephone,
@@ -39,6 +42,7 @@ class EmployeeListController extends AsyncNotifier<List<Employee>> {
           role: role,
         );
     await refresh();
+    return employee;
   }
 
   Future<void> toggleStatut(Employee employee) async {

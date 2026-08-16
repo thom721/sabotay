@@ -22,6 +22,8 @@ from app.schemas.transaction import (
     RetraitCreate,
     TransactionCreate,
     TransactionRead,
+    TransactionRegistreItem,
+    TransactionRegistrePage,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -171,10 +173,13 @@ async def read_rapport_transactions(
     session: SessionDep,
     entreprise_id: TenantId,
     current_user: CurrentUser,
+    agent_id: str | None = None,
 ) -> RapportRead:
     """Rapport de collecte imprimable sur une période (PRD §8.7) — un Agent
-    est forcé sur ses propres collectes, Admin/Manager voient tout le
-    tenant."""
+    est forcé sur ses propres collectes (même si `agent_id` est fourni, pour
+    ne jamais lui permettre de consulter les collectes d'un autre agent).
+    Admin/Manager voient tout le tenant par défaut, ou un agent précis via
+    `agent_id` (filtre côté web, PRD Rapports)."""
     if date_fin < date_debut:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,7 +187,7 @@ async def read_rapport_transactions(
         )
 
     collecte_par_id = (
-        current_user.id if current_user.role == RoleUtilisateur.AGENT else None
+        current_user.id if current_user.role == RoleUtilisateur.AGENT else agent_id
     )
     transactions = await crud_transaction.list_for_periode(
         session,
@@ -209,3 +214,43 @@ async def read_rapport_transactions(
         nb_transactions=len(transactions),
         transactions=transactions,
     )
+
+
+@router.get(
+    "/transactions",
+    response_model=TransactionRegistrePage,
+    dependencies=[_ROLES_COLLECTE],
+)
+async def read_registre_transactions(
+    session: SessionDep,
+    entreprise_id: TenantId,
+    current_user: CurrentUser,
+    q: str | None = None,
+    skip: int = 0,
+    limit: int = 50,
+) -> TransactionRegistrePage:
+    """Registre brut, paginé, recherche libre par client/compte/agent — pour
+    retrouver une transaction précise, contrairement à `/transactions/rapport`
+    qui sert un rapport de synthèse borné à une période. Un Agent est forcé
+    sur ses propres collectes, comme le rapport."""
+    limit = min(limit, 200)
+    collecte_par_id = current_user.id if current_user.role == RoleUtilisateur.AGENT else None
+
+    rows, total = await crud_transaction.list_registre(
+        session,
+        entreprise_id=entreprise_id,
+        q=q,
+        collecte_par_id=collecte_par_id,
+        skip=skip,
+        limit=limit,
+    )
+
+    items = [
+        TransactionRegistreItem(
+            **transaction.model_dump(),
+            client_nom=f"{prenom} {nom}".strip(),
+            compte_numero=compte_numero,
+        )
+        for transaction, prenom, nom, compte_numero in rows
+    ]
+    return TransactionRegistrePage(items=items, total=total)

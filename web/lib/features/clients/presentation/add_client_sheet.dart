@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/email_echec_dialog.dart';
 import 'client_list_controller.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
@@ -69,7 +70,7 @@ class _AddClientSheetState extends ConsumerState<_AddClientSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      await ref.read(clientListControllerProvider.notifier).addClient(
+      final client = await ref.read(clientListControllerProvider.notifier).addClient(
             nom: _nomController.text.trim(),
             prenom: _prenomController.text.trim(),
             telephone: _telephoneController.text.trim(),
@@ -82,7 +83,15 @@ class _AddClientSheetState extends ConsumerState<_AddClientSheet> {
             heritierAdresse: _emptyToNull(_heritierAdresseController),
             heritierTelephone: _emptyToNull(_heritierTelephoneController),
           );
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      if (client.motDePasseTemporaire != null) {
+        await showEmailEchecMotDePasseDialog(
+          context,
+          identifiant: client.email ?? client.telephone,
+          motDePasse: client.motDePasseTemporaire!,
+        );
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);

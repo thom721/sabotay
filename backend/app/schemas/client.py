@@ -44,3 +44,7 @@ class ClientRead(SQLModel):
     heritier_telephone: str | None
     statut: StatutClient
     derniere_connexion: datetime | None
+    # Présents uniquement juste après la création (voir crud/client.py) —
+    # None sur toute lecture ultérieure du client.
+    email_envoye: bool | None = None
+    mot_de_passe_temporaire: str | None = None

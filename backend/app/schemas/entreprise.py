@@ -23,6 +23,7 @@ class EntrepriseRead(SQLModel):
     telephone_contact: str | None
     format_recu: str
     texte_bas_recu: str | None
+    logo_data: str | None
     frais_retrait: Decimal
     statut: str
 
@@ -35,4 +36,5 @@ class EntrepriseProfilUpdate(SQLModel):
     telephone_contact: str | None = None
     format_recu: str | None = None
     texte_bas_recu: str | None = None
+    logo_data: str | None = None
     frais_retrait: Decimal | None = None

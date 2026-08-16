@@ -1,10 +1,11 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.models.client import Client
 from app.models.compte_sabotay import CompteSabotay, StatutCompte
 from app.models.transaction import Transaction, TypeTransaction
 from app.schemas.compte_sabotay import CompteSabotaySolde
@@ -221,3 +222,51 @@ async def list_for_periode(
     statement = select(Transaction).where(*conditions).order_by(Transaction.date.desc())
     result = await session.execute(statement)
     return list(result.scalars().all())
+
+
+async def list_registre(
+    session: AsyncSession,
+    *,
+    entreprise_id: str,
+    q: str | None = None,
+    collecte_par_id: str | None = None,
+    skip: int = 0,
+    limit: int = 50,
+) -> tuple[list[tuple[Transaction, str, str, str]], int]:
+    """Registre paginé de toutes les transactions du tenant, avec recherche
+    libre sur le client (nom/prénom), le numéro de compte ou l'agent — pour
+    retrouver UNE transaction précise, contrairement à `list_for_periode` qui
+    sert un rapport de synthèse borné à une période. Retourne des tuples
+    (transaction, prénom, nom, numéro de compte) : la jointure est résolue
+    ici plutôt que de faire porter ça à l'appelant (`compte_id` seul ne
+    permettant aucune recherche par client côté UI)."""
+    base = (
+        select(Transaction, Client.prenom, Client.nom, CompteSabotay.numero_compte)
+        .join(CompteSabotay, CompteSabotay.id == Transaction.compte_id)
+        .join(Client, Client.id == CompteSabotay.client_id)
+        .where(Transaction.entreprise_id == entreprise_id)
+    )
+    if collecte_par_id is not None:
+        base = base.where(Transaction.collecte_par_id == collecte_par_id)
+    if q:
+        like = f"%{q}%"
+        base = base.where(
+            or_(
+                Client.nom.ilike(like),
+                Client.prenom.ilike(like),
+                CompteSabotay.numero_compte.ilike(like),
+                Transaction.collecte_par_nom.ilike(like),
+            )
+        )
+
+    total = (
+        await session.execute(select(func.count()).select_from(base.subquery()))
+    ).scalar_one()
+
+    statement = (
+        base.order_by(Transaction.date.desc(), Transaction.cree_le.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await session.execute(statement)
+    return list(result.all()), total

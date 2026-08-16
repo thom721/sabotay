@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
+import '../../../core/printing/printer_settings.dart';
+import '../../../core/printing/thermal_printer_service.dart';
 import '../../comptes/domain/compte_sabotay.dart';
 import '../../entreprise/domain/entreprise_profil.dart';
 import '../../entreprise/presentation/entreprise_providers.dart';
@@ -15,18 +16,21 @@ import '../domain/transaction.dart';
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _amountFormat = NumberFormat.decimalPattern('fr');
 
-/// Génère le PDF du reçu au format papier thermique de l'entreprise
-/// (`entreprise.formatRecu`, "58mm"/"80mm" — cf. `Entreprise.format_recu`
-/// côté backend, prévu pour ça mais jamais exploité avant cette fonction).
-/// Bifurque sur le type : une collecte affiche le nombre de jours payés, un
-/// retrait affiche les frais et le montant net remis.
-Future<Uint8List> _buildRecuPdf({
+/// Génère le PDF du reçu — largeur papier prise sur [largeurMmOverride]
+/// (réglage local à l'appareil, voir `PrinterSettings`) si fourni, sinon sur
+/// le format de l'entreprise (`entreprise.formatRecu`, "58mm"/"80mm" — cf.
+/// `Entreprise.format_recu` côté backend). Bifurque sur le type : une
+/// collecte affiche le nombre de jours payés, un retrait affiche les frais
+/// et le montant net remis.
+Future<Uint8List> buildRecuPdf({
   required Transaction transaction,
   required CompteSabotay compte,
   required String clientNom,
   required EntrepriseProfil entreprise,
+  int? largeurMmOverride,
 }) {
-  final largeurMm = double.tryParse(
+  final largeurMm = largeurMmOverride?.toDouble() ??
+      double.tryParse(
         entreprise.formatRecu.replaceAll(RegExp('[^0-9.]'), ''),
       ) ??
       80;
@@ -78,8 +82,8 @@ Future<Uint8List> _buildRecuPdf({
             _ligne('Jours payés', '${transaction.nbJours ?? 1}'),
             _ligne('Montant', '${_amountFormat.format(transaction.montant)} ${entreprise.devise}'),
           ],
-          _ligne('Collecté par', transaction.collecteParNom),
-          _ligne('Reçu N°', 'TR-${transaction.id}'),
+          _ligne(isRetrait ? 'Traité par' : 'Collecté par', transaction.collecteParNom),
+          _ligne('Reçu N°', transaction.numero),
           pw.Divider(),
           if (entreprise.texteBasRecu != null && entreprise.texteBasRecu!.isNotEmpty) ...[
             pw.SizedBox(height: 4),
@@ -129,15 +133,21 @@ Future<void> imprimerRecu(
     } else {
       entrepriseResolue = await ref.read(entrepriseProfilProvider.future);
     }
-    final pdfBytes = await _buildRecuPdf(
+    final printerSettings = await ref.read(printerSettingsProvider.future);
+
+    await ThermalPrinterService.instance.printRecu(
       transaction: transaction,
       compte: compte,
       clientNom: clientNom,
       entreprise: entrepriseResolue,
-    );
-    await Printing.layoutPdf(
-      onLayout: (_) async => pdfBytes,
-      name: 'Recu-TR-${transaction.id}',
+      printerSettings: printerSettings,
+      buildPdfBytes: () => buildRecuPdf(
+        transaction: transaction,
+        compte: compte,
+        clientNom: clientNom,
+        entreprise: entrepriseResolue,
+        largeurMmOverride: printerSettings.paperWidthMm,
+      ),
     );
   } catch (_) {
     if (context.mounted) {

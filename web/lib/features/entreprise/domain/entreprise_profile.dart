@@ -6,6 +6,8 @@ class EntrepriseProfile {
   final String? telephoneContact;
   final String formatRecu;
   final String? texteBasRecu;
+  final String? logoData;
+  final num fraisRetrait;
   final String statut;
 
   const EntrepriseProfile({
@@ -16,6 +18,8 @@ class EntrepriseProfile {
     required this.telephoneContact,
     required this.formatRecu,
     required this.texteBasRecu,
+    required this.logoData,
+    required this.fraisRetrait,
     required this.statut,
   });
 
@@ -27,6 +31,8 @@ class EntrepriseProfile {
         telephoneContact: json['telephone_contact'] as String?,
         formatRecu: json['format_recu'] as String,
         texteBasRecu: json['texte_bas_recu'] as String?,
+        logoData: json['logo_data'] as String?,
+        fraisRetrait: num.parse(json['frais_retrait'].toString()),
         statut: json['statut'] as String,
       );
 }

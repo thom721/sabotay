@@ -38,6 +38,8 @@ class EntrepriseRepository {
     String? telephoneContact,
     String? formatRecu,
     String? texteBasRecu,
+    String? logoData,
+    num? fraisRetrait,
   }) async {
     final data = <String, dynamic>{};
     if (nom != null) data['nom'] = nom;
@@ -45,6 +47,8 @@ class EntrepriseRepository {
     if (telephoneContact != null) data['telephone_contact'] = telephoneContact;
     if (formatRecu != null) data['format_recu'] = formatRecu;
     if (texteBasRecu != null) data['texte_bas_recu'] = texteBasRecu;
+    if (logoData != null) data['logo_data'] = logoData;
+    if (fraisRetrait != null) data['frais_retrait'] = fraisRetrait;
 
     final response = await _dio.patch('/entreprises/profil', data: data);
     return EntrepriseProfile.fromJson(response.data as Map<String, dynamic>);

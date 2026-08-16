@@ -24,6 +24,7 @@ class RetraitCreate(SQLModel):
 
 class TransactionRead(SQLModel):
     id: str
+    numero: str
     entreprise_id: str
     compte_id: str
     date: date
@@ -43,3 +44,18 @@ class RapportRead(SQLModel):
     total_retrait: Decimal
     nb_transactions: int
     transactions: list[TransactionRead]
+
+
+class TransactionRegistreItem(TransactionRead):
+    """Une ligne du registre de transactions (`GET /transactions`) — mêmes
+    champs que `TransactionRead`, enrichis du nom du client et du numéro de
+    compte (résolus via jointure) pour permettre la recherche libre sans que
+    l'appelant ait à résoudre `compte_id` lui-même."""
+
+    client_nom: str
+    compte_numero: str
+
+
+class TransactionRegistrePage(SQLModel):
+    items: list[TransactionRegistreItem]
+    total: int

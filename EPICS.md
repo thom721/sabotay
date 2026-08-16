@@ -51,7 +51,7 @@ Suivi de l'initiative "architecture pos_api" (paiement hors-ligne, sync cloud⇄
 - Web + Mobile : tous les domain models/repositories/providers/écrans/routeur retypés `int` → `String` (~60 fichiers au total sur les 3 codebases, superadmin inclus). `flutter analyze` 0 erreur, `flutter test` passe (web + mobile), `flutter build web` passe.
 - **Bug trouvé au passage** : `superAdminSelfIdProvider` (web) décodait le claim JWT `sub` en supposant un entier (`int.tryParse`) — cassé silencieusement dès que `sub` est devenu un UUID string. Corrigé.
 
-**Effet cosmétique noté, pas corrigé** : `Transaction.id` affiché tel quel sur les reçus/rapports (`TR-${transaction.id}`) devient un UUID long au lieu d'un numéro court. `CompteSabotay.numeroCompte` (ex. `SB-000001`) n'est pas concerné. Si ça gêne à l'usage → epic séparé "numéro de transaction séquentiel affichable", ne pas le confondre avec l'id technique.
+**Effet cosmétique noté, pas corrigé** : `Transaction.id` affiché tel quel sur les reçus/rapports (`TR-${transaction.id}`) devient un UUID long au lieu d'un numéro court. `CompteSabotay.numeroCompte` (ex. `SB-000001`) n'est pas concerné. Si ça gêne à l'usage → epic séparé "numéro de transaction séquentiel affichable", ne pas le confondre avec l'id technique. **Corrigé — voir Epic 18.**
 
 ---
 
@@ -249,6 +249,85 @@ En étudiant `pos_api/routes/setup.py`, la liaison poste-local↔cloud se fait v
 
 - Intercepteur `onError` ajouté aux deux clients Dio (staff et superadmin, `core/network/api_client.dart`) : un `401` en dehors de `/auth/login`/`/auth/superadmin-login` (où 401 = identifiants invalides, pas session expirée) déclenche directement `logout()` — le routeur renvoie alors vers l'écran de connexion via `_AuthRefreshNotifier`.
 - Au passage : canal par défaut de "Mot de passe oublié" changé de SMS (Twilio, jamais configuré en prod → tombe dans un repli qui journalise seulement, jamais reçu) à Email (SMTP configurable sans redéploiement depuis Superadmin → Paramètres → SMTP Config, voir Epic 9).
+
+---
+
+## Epic 17 — Clients assignés, recherche sur les listes, registre de transactions (web) ✅ Terminé
+
+**Objectif** : trois trous signalés explicitement côté admin web — la fiche employé ne montrait pas ses clients assignés, les listes Clients/Employés n'avaient aucune recherche, et il n'existait aucun moyen de retrouver une transaction précise sans passer par un rapport borné à une période.
+
+### Clients assignés sur la fiche employé
+- `web/lib/features/employees/presentation/employee_detail_screen.dart` : nouvelle carte "Clients assignés", filtrée depuis `clientListControllerProvider` déjà chargé (`Client.agentAssigneId == employee.id`) — pas de nouvel endpoint backend nécessaire. Chaque ligne pointe vers la fiche client (`/admin/clients/:id`).
+
+### Recherche sur les listes Clients et Employés
+- `admin_clients_screen.dart` / `employee_list_screen.dart` : champ de recherche (nom/téléphone pour les clients, +email pour les employés), filtrage **côté client** sur la liste déjà chargée en mémoire.
+- **Pagination volontairement pas ajoutée** : les deux listes sont déjà entièrement chargées en un seul appel (`GET /clients`/`GET /utilisateurs`, sans `skip`/`limit` côté backend) — une vraie pagination serveur demanderait de changer ces deux endpoints. Les volumes actuels ne le justifient pas ; à revisiter si une entreprise dépasse quelques centaines de clients/employés et que le premier chargement devient sensiblement lent.
+
+### Nouvel onglet "Transactions" (registre brut, distinct de "Rapports")
+Décidé avec l'utilisateur : "Rapports" (déjà livré, session précédente) reste la synthèse période + totaux + filtre agent ; "Transactions" est un **registre brut** pour retrouver une transaction précise par recherche libre, sans période par défaut.
+- Backend : `GET /transactions` (`backend/app/api/v1/endpoints/transactions.py`) — pagination (`skip`/`limit`, max 200), recherche libre (`q`) sur le nom/prénom du client, le numéro de compte (`CompteSabotay.numero_compte`) ou le nom de l'agent (`collecte_par_nom`), via jointure `Transaction ⇄ CompteSabotay ⇄ Client` (`crud/transaction.py::list_registre`). Même règle d'accès que `/transactions/rapport` : un Agent reste forcé sur ses propres transactions.
+- Nouveaux schémas `TransactionRegistreItem` (= `TransactionRead` + `client_nom`/`compte_numero` résolus côté serveur) et `TransactionRegistrePage` (`items`/`total`).
+- Web : `TransactionRegistreScreen` (`web/lib/features/transactions/presentation/`), recherche avec debounce 400ms, pagination précédent/suivant, nouvel item de sidebar "Transactions" (`/admin/transactions`, entre Tableau de bord et Rapports).
+- **Testé de bout en bout via HTTP réel** (pas seulement `py_compile`) : instance uvicorn temporaire lancée sur un port dédié (9099, arrêtée après coup — sans toucher aux serveurs de dev déjà en cours sur 9004/9008), token généré directement via `create_access_token` pour un compte Admin réel de la base de dev locale. Confirmé : liste sans filtre (`total`/`items` corrects), recherche par nom de client (`q=test`), par agent (`q=nike`, insensible à la casse), recherche sans résultat (`q=introuvable` → `items: []`), pagination au-delà du dernier élément (`skip=1` sur 1 résultat → `items: []`, `total` inchangé). Non-régression vérifiée sur `/transactions/rapport` (toujours 200, mêmes données).
+- **Point d'attention noté pendant la vérification, pas un bug de ce code** : les deux serveurs de dev déjà en cours (`--reload`, ports 9004/9008) n'ont pas repris ces changements automatiquement (`GET /transactions` renvoyait 405 dessus, alors que l'instance de test fraîchement lancée répondait correctement) — probablement un `--reload` qui ne surveille pas ce dossier depuis leur cwd de lancement. **Un redémarrage manuel de ces deux process est nécessaire avant de tester dans le navigateur.**
+- `flutter analyze` (web) 0 erreur, `flutter build web` propre.
+
+---
+
+## Epic 18 — Numéro de reçu lisible + libellé adapté au type de transaction ✅ Terminé
+
+**Objectif** : deux trous signalés explicitement sur les reçus de collecte/retrait (mobile Bluetooth/Sunmi/PDF, web PDF). Le libellé "Collecté par" apparaissait tel quel même sur un reçu de **retrait** (sémantiquement faux — rien n'y est "collecté"). Le numéro de reçu (`Reçu N°`) affichait l'UUID technique de la transaction (`TR-${transaction.id}`), noté comme limite cosmétique connue dans l'Epic 3.
+
+- `backend/app/models/transaction.py` : nouveau champ `numero` (`_generate_numero()`, ex. `TR-20260817143022137` — timestamp à la milliseconde, préfixe fixe). **Choix explicite : pas de compteur séquentiel par tenant** (contrairement à `comptes_sabotay.numero_compte`) — pas de verrou/course à gérer, collision pratiquement impossible même en écritures concurrentes, demandé ainsi par l'utilisateur.
+- Migration `0028` : colonne `numero` (non-nullable, index simple, pas de contrainte unique — cosmétique, pas une clé). Rétro-remplissage des lignes existantes depuis leur propre `cree_le` (`to_char(cree_le, 'YYYYMMDDHH24MISSMS')`), pas une valeur unique partagée pour tout l'historique.
+- `TransactionRead`/`TransactionRegistreItem` (backend) et `Transaction`/`TransactionRegistreItem` (domain models mobile **et** web) : champ `numero` ajouté.
+- Libellé : `isRetrait ? 'Traité par' : 'Collecté par'` dans les 4 générateurs de reçu — `mobile/lib/features/transactions/presentation/recu_pdf.dart`, `mobile/lib/core/printing/bluetooth_print_service.dart`, `mobile/lib/core/printing/thermal_printer_service.dart` (impression Sunmi), `web/lib/features/transactions/presentation/recu_pdf.dart`. `'Reçu N°'` utilise désormais `transaction.numero` dans les 4 mêmes fichiers (plus le nom de fichier du PDF généré, `Recu-${transaction.numero}` au lieu de `Recu-TR-${transaction.id}`).
+- **Vérifié que la sync cloud⇄local (Epic 2) n'a rien à mettre à jour manuellement** : `ENTITES` (`sync.py`) référence le modèle `Transaction` directement, la sérialisation push/pull (`model_dump()`/`model_validate()`) est générique — un nouveau champ suit automatiquement des deux côtés (cloud↔local), aucune liste de champs codée en dur trouvée.
+- **Risque identifié dans cette session, corrigé dans la session suivante — voir Epic 20.**
+- **Testé de bout en bout** : migration `0028` appliquée réellement sur la base de dev Postgres (rétro-remplissage vérifié par `SELECT` — `TR-20260812133954967` cohérent avec `cree_le` = `2026-08-12 13:39:54.967069`), endpoint `GET /transactions` réinterrogé via une instance uvicorn temporaire (port dédié, arrêtée après coup) confirmant `numero` présent et correctement formaté dans la réponse JSON. `flutter analyze` (mobile + web) 0 erreur, `flutter build web` et `flutter build apk --debug` propres.
+
+---
+
+## Epic 19 — Logo entreprise + frais de retrait éditable (web/bureau) ✅ Terminé
+
+**Objectif** : sur l'onglet Entreprise (web, et bureau — même codebase, voir Epic 5c), l'admin doit pouvoir ajouter le logo de son entreprise et configurer le frais de retrait. Le frais existait déjà côté backend (`Entreprise.frais_retrait`, appliqué depuis l'Epic initial) mais son commentaire disait explicitement « pas d'écran de config web dans ce repo pour l'instant » — confirmé : absent de `EntrepriseProfile` (domain), de `updateProfile()` (repository) et du formulaire web. La sémantique du calcul a aussi été vérifiée avant toute modif : elle était déjà correcte (voir ci-dessous), aucun changement de logique financière n'était nécessaire.
+
+### Logo entreprise
+- Aucune infra de stockage de fichiers n'existe dans ce repo (ni cloud ni bureau) — **choix délibéré : stocker le logo en data URI base64** (`Entreprise.logo_data`, migration `0029`) plutôt qu'un fichier + URL. `entreprises` fait déjà partie des entités synchronisées (`sync.py::ENTITES`, sérialisation générique `model_dump()`/`model_validate()`) — un champ texte simple traverse ce mécanisme sans rien y ajouter, contrairement à un fichier binaire qu'il aurait fallu transférer séparément entre cloud et poste local.
+- Plafond de taille appliqué aux deux bouts : ~1 Mo décodé côté client (`_tailleMaxLogoOctets`, feedback immédiat) et ~1,4 Mo (marge d'encodage base64) côté serveur (`_TAILLE_MAX_LOGO_DATA`, `PATCH /entreprises/profil`) — défense en profondeur, pas seulement l'UI.
+- Web : nouveau champ `file_picker` (multiplateforme web/Windows/macOS, `withData: true` pour récupérer les bytes directement) dans `_ProfileInfoCard` (`entreprise_profile_screen.dart`) — aperçu (`Image.memory`) + bouton "Ajouter/Changer le logo", envoyé avec le reste du formulaire au clic sur "Enregistrer" (pas d'auto-save au moment du choix du fichier, cohérent avec le reste du formulaire).
+- **Portée volontairement limitée** : uniquement l'upload/affichage dans les réglages. Le logo n'est **pas** branché sur l'impression des reçus (PDF/Bluetooth/Sunmi, Epic "reçus de paiement") — ce serait un epic séparé, plus lourd (conversion bitmap ESC/POS comme pos_api, voir `bluetooth_print_service.dart` de pos_api), non demandé ici.
+
+### Frais de retrait — UI ajoutée, logique déjà correcte
+- `EntrepriseProfile` (domain web), `updateProfile()` (repository) et `_ProfileInfoCard` (nouveau `TextFormField` avec texte d'aide explicite) : `frais_retrait` maintenant éditable depuis le web, avec validation (`>= 0`).
+- **Sémantique vérifiée avant toute modification** (`crud/transaction.py::create_retrait`/`get_solde`) : `data.montant` (saisi par l'agent) est bien la portion déduite du solde disponible — le client reçoit `montant - frais` net en main. Le plafond de retrait (`data.montant > solde.solde_disponible`) compare directement le montant demandé au solde, sans y ajouter les frais séparément — cohérent avec "le frais sort du montant retiré/du solde", déjà correctement implémenté et déjà visible côté mobile (`retrait_sheet.dart` affiche frais + montant net à remettre avant confirmation). **Aucun changement de cette logique** : le trou était uniquement l'absence d'UI web pour configurer la valeur, pas un bug de calcul.
+- Corrigé au passage : deux constructeurs `EntrepriseProfile(...)` (dont un profil minimal reconstruit côté super-admin pour l'impression du reçu d'abonnement, `superadmin_entreprise_detail_screen.dart`) ne fournissaient pas les nouveaux champs obligatoires — `flutter build web` a immédiatement révélé l'erreur de compilation, corrigée (`logoData: null`, `fraisRetrait: 0` pour ce profil minimal, qui n'a de toute façon pas accès à ces données via `EntrepriseSuperAdminRead`).
+- **Testé de bout en bout via HTTP réel** (instance uvicorn temporaire dédiée, arrêtée après coup, données de test nettoyées derrière) : `PATCH /entreprises/profil` avec logo + frais → `200`, valeurs bien persistées (vérifié par `GET` + `SELECT` direct) ; logo surdimensionné (~1,5 Mo) → `400` avec message explicite. `flutter analyze` (web) 0 erreur, `flutter build web` **et** `flutter build macos --debug` propres (la cible bureau partage ce code, testée explicitement puisque la demande visait web *et* bureau).
+
+---
+
+## Epic 20 — Garde-fou schéma local (pattern pos_api), palette mobile pos_api, parité sync mobile ✅ Terminé
+
+**Objectif** : trois demandes explicites, chacune inspirée de la façon dont pos_api gère le même problème.
+
+### Garde-fou de schéma SQLite local (risque noté aux Epics 18/19, corrigé ici)
+- Recherche préalable dans `pos_api/api/main.py` : pos_api **n'utilise pas non plus Alembic** dans son binaire compilé (`_run_alembic_migrations()`, lignes 167-236, se désactive elle-même via `if getattr(sys, "frozen", False): return` — Alembic a besoin de ses fichiers de migration sur disque, absents d'un exécutable figé). Le vrai mécanisme de pos_api est `_sync_schema_from_models()` (lignes 238-355) : inspecte chaque table existante, compare aux colonnes du modèle, et exécute des `ALTER TABLE ADD COLUMN` pour combler l'écart — exécuté à **chaque démarrage**, en plus de `create_all()`.
+- Reproduit à l'identique côté SabotayPro : `backend/app/core/db.py::sync_schema_local()`, appelée juste après `create_all()` dans `main.py::lifespan()` (uniquement en `LOCAL_MODE`). Simplification assumée par rapport à pos_api : colonnes toujours ajoutées **nullable**, même si le modèle Python les déclare `NOT NULL` — un `ADD COLUMN NOT NULL` sans défaut échoue dès que la table contient des lignes, et l'application fournit de toute façon toujours une valeur à la création pour les nouvelles lignes ; seules les lignes déjà existantes avant la mise à jour du poste resteraient à `NULL` sur ce champ (cosmétique, ex. un vieux reçu sans numéro lisible).
+- **Testé de bout en bout à trois niveaux**, pas seulement en théorie :
+  1. Appel direct de `sync_schema_local()` sur un SQLite simulant un poste "ancien" (schéma créé puis `numero`/`logo_data` retirés via `ALTER TABLE DROP COLUMN`, après avoir dû aussi supprimer l'index associé — SQLite refuse de droper une colonne indexée sans ça, détail découvert pendant le test) → colonnes bien réapparues.
+  2. Non-régression sur une base neuve : `create_all()` + `sync_schema_local()` enchaînés ne provoquent aucune erreur (deuxième appel no-op silencieux sur des colonnes déjà présentes).
+  3. **Démarrage réel du serveur** (`uvicorn app.main:app`, `LOCAL_MODE=true`) contre la base "ancienne" simulée → logs confirmant `Colonne locale ajoutée : entreprises.logo_data` et `: transactions.numero`, `GET /health` → 200, colonnes vérifiées présentes après coup.
+
+### Palette de couleurs — mobile aligné sur pos_api
+- Recherche préalable : pos_api n'a qu'un seul thème (`pos_api/frontend/lib/core/theme.dart`), pas de mode sombre, palette `primary #0077C5`, `accent #2CA01C`, `background #F0F2F5`, `surface #FFFFFF`, `textPrimary #1A202C`, `textSecondary #718096`, `divider #E2E8F0`, `error #E53E3E`, `info #3182CE`.
+- `mobile/lib/core/theme/app_colors.dart` : remplace le système "navy/émeraude" de `Model_Mobil_App/DESIGN.md` par cette palette — **noms de constantes conservés à l'identique** (`navy`, `emerald`, `crimson`, `slate`, `lightBg`, etc.) pour ne casser aucun point d'usage dans l'app, seules les valeurs changent. `slate` (bleu "info", `#3182CE`) reprend exactement la couleur déjà utilisée côté web pour la carte "Clients actifs" du tableau de bord (Epic 15) — cohérence de palette entre web et mobile même si le web garde son doré (`gold`) comme couleur de marque principale pour les boutons (Epic 14, non touché ici, pas demandé).
+- pos_api n'ayant pas de mode sombre, les variantes `*Dark` (utilisées quand `Brightness.dark`) sont **adaptées, pas copiées** : `navyDark` reprend `sidebarSelected` (`#2563EB`, la teinte que pos_api utilise lui-même pour ressortir sur son sidebar sombre), `emeraldDark` reprend `success` (`#38A169`), `crimsonDark` est éclairci (`#FF6B6B`, pos_api n'a pas d'équivalent). Les neutres du mode sombre (fond/surface/texte, propres à SabotayPro, sans équivalent pos_api) restent inchangés.
+- `flutter analyze` 0 erreur, `flutter build apk --debug` propre.
+
+### Frais de retrait et logo — parité de sync mobile vérifiée
+- `frais_retrait` : déjà présent et fonctionnel côté mobile avant cette session (`EntrepriseProfil.fraisRetrait`, lu et déjà utilisé pour le calcul du montant net dans `retrait_sheet.dart`) — confirmé, rien à corriger.
+- `logo_data` : présent côté backend (Epic 19) mais **absent du domain model mobile** — ajouté à `mobile/lib/features/entreprise/domain/entreprise_profil.dart` pour la parité, même si rien ne l'affiche encore côté mobile (le logo n'est toujours pas branché sur l'impression des reçus, portée volontairement exclue à l'Epic 19).
+- Le flux HTTP (`GET /entreprises/profil`) et la sync cloud⇄bureau (générique, voir Epic 18) transportaient déjà ces deux champs correctement pour l'app mobile comme pour un poste bureau — seul le parsing Dart mobile manquait pour `logo_data`, maintenant comblé.
 
 ---
 

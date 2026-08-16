@@ -9,6 +9,7 @@ import '../../../core/widgets/licence_banner.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/change_password_sheet.dart';
 import '../../clients/presentation/client_search_sheet.dart';
+import '../../parametres/presentation/imprimante_settings_sheet.dart';
 import '../../rapports/presentation/rapport_screen.dart';
 import '../../transactions/presentation/quick_collecte_sheet.dart';
 
@@ -114,6 +115,11 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const RapportScreen()),
                           ),
+                        ),
+                        _AccueilButton(
+                          icon: Icons.print_outlined,
+                          label: 'Imprimante',
+                          onTap: () => showImprimanteSettingsSheet(context),
                         ),
                         _AccueilButton(
                           icon: Icons.logout,

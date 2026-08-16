@@ -22,11 +22,36 @@ String _formatDerniereConnexion(DateTime? derniereConnexion) {
 }
 
 /// Gestion des employés par l'Admin Entreprise (PRD §8.2, RBAC §6).
-class EmployeeListScreen extends ConsumerWidget {
+class EmployeeListScreen extends ConsumerStatefulWidget {
   const EmployeeListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EmployeeListScreen> createState() => _EmployeeListScreenState();
+}
+
+class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
+  final _rechercheController = TextEditingController();
+  String _recherche = '';
+
+  @override
+  void dispose() {
+    _rechercheController.dispose();
+    super.dispose();
+  }
+
+  List<Employee> _filtrer(List<Employee> employees) {
+    final q = _recherche.trim().toLowerCase();
+    if (q.isEmpty) return employees;
+    return employees
+        .where((e) =>
+            e.nomComplet.toLowerCase().contains(q) ||
+            e.telephone.toLowerCase().contains(q) ||
+            (e.email ?? '').toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final employeesAsync = ref.watch(employeeListControllerProvider);
 
     return DashboardContent(
@@ -53,6 +78,19 @@ class EmployeeListScreen extends ConsumerWidget {
         children: [
           const _RolesInfoPanel(),
           const SizedBox(height: 16),
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _rechercheController,
+              decoration: const InputDecoration(
+                hintText: 'Rechercher un employé (nom, téléphone, email)',
+                prefixIcon: Icon(Icons.search, size: 20),
+                isDense: true,
+              ),
+              onChanged: (value) => setState(() => _recherche = value),
+            ),
+          ),
+          const SizedBox(height: 16),
           employeesAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.only(top: 80),
@@ -62,19 +100,26 @@ class EmployeeListScreen extends ConsumerWidget {
               message: 'Impossible de charger les employés',
               onRetry: () => ref.read(employeeListControllerProvider.notifier).refresh(),
             ),
-            data: (employees) => employees.isEmpty
-                ? const EmptyState(message: 'Aucun employé pour l\'instant')
-                : Card(
-                    margin: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < employees.length; i++) ...[
-                          if (i > 0) const Divider(height: 1),
-                          _EmployeeTile(employee: employees[i]),
-                        ],
-                      ],
-                    ),
-                  ),
+            data: (employees) {
+              final filtres = _filtrer(employees);
+              if (employees.isEmpty) {
+                return const EmptyState(message: 'Aucun employé pour l\'instant');
+              }
+              if (filtres.isEmpty) {
+                return const EmptyState(message: 'Aucun employé ne correspond à cette recherche');
+              }
+              return Card(
+                margin: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (var i = 0; i < filtres.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _EmployeeTile(employee: filtres[i]),
+                    ],
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

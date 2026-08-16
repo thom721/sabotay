@@ -22,11 +22,34 @@ String _formatDerniereConnexion(DateTime? derniereConnexion) {
 
 /// Gestion des clients par l'Admin/Manager (PRD §8.3) : vue d'ensemble de
 /// tous les clients de l'entreprise, avec assignation à un agent.
-class AdminClientsScreen extends ConsumerWidget {
+class AdminClientsScreen extends ConsumerStatefulWidget {
   const AdminClientsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminClientsScreen> createState() => _AdminClientsScreenState();
+}
+
+class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
+  final _rechercheController = TextEditingController();
+  String _recherche = '';
+
+  @override
+  void dispose() {
+    _rechercheController.dispose();
+    super.dispose();
+  }
+
+  List<Client> _filtrer(List<Client> clients) {
+    final q = _recherche.trim().toLowerCase();
+    if (q.isEmpty) return clients;
+    return clients
+        .where((c) =>
+            c.nomComplet.toLowerCase().contains(q) || c.telephone.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final clientsAsync = ref.watch(clientListControllerProvider);
     final employeesAsync = ref.watch(employeeListControllerProvider);
 
@@ -66,19 +89,46 @@ class AdminClientsScreen extends ConsumerWidget {
           message: 'Impossible de charger les clients',
           onRetry: () => ref.read(clientListControllerProvider.notifier).refresh(),
         ),
-        data: (clients) => clients.isEmpty
-            ? const EmptyState(message: 'Aucun client pour l\'instant')
-            : Card(
-                margin: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < clients.length; i++) ...[
-                      if (i > 0) const Divider(height: 1),
-                      _ClientRow(client: clients[i], agentName: agentName(clients[i].agentAssigneId)),
-                    ],
-                  ],
+        data: (clients) {
+          final filtres = _filtrer(clients);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 360,
+                child: TextField(
+                  controller: _rechercheController,
+                  decoration: const InputDecoration(
+                    hintText: 'Rechercher un client (nom, téléphone)',
+                    prefixIcon: Icon(Icons.search, size: 20),
+                    isDense: true,
+                  ),
+                  onChanged: (value) => setState(() => _recherche = value),
                 ),
               ),
+              const SizedBox(height: 16),
+              if (clients.isEmpty)
+                const EmptyState(message: 'Aucun client pour l\'instant')
+              else if (filtres.isEmpty)
+                const EmptyState(message: 'Aucun client ne correspond à cette recherche')
+              else
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < filtres.length; i++) ...[
+                        if (i > 0) const Divider(height: 1),
+                        _ClientRow(
+                          client: filtres[i],
+                          agentName: agentName(filtres[i].agentAssigneId),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

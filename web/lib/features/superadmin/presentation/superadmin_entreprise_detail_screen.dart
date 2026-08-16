@@ -435,6 +435,8 @@ class _PaiementTileState extends ConsumerState<_PaiementTile> {
                       telephoneContact: null,
                       formatRecu: '80mm',
                       texteBasRecu: null,
+                      logoData: null,
+                      fraisRetrait: 0,
                       statut: widget.summary.statut,
                     ),
                   ),

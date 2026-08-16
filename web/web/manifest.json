@@ -1,11 +1,11 @@
 {
-    "name": "sabotaypro",
-    "short_name": "sabotaypro",
+    "name": "SabotayPro",
+    "short_name": "SabotayPro",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#D31E28",
+    "description": "SabotayPro — gestion numérique des comptes d'épargne rotative (sabotay/sol).",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

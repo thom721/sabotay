@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
 import '../../auth/domain/user.dart';
+import '../../clients/domain/client.dart';
+import '../../clients/presentation/client_list_controller.dart';
 import '../domain/employee.dart';
 import 'employee_list_controller.dart';
 
@@ -50,7 +53,14 @@ class EmployeeDetailScreen extends ConsumerWidget {
           if (found == null) {
             return const EmptyState(message: 'Employé introuvable');
           }
-          return _EmployeeInfoCard(employee: found);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _EmployeeInfoCard(employee: found),
+              const SizedBox(height: 20),
+              _ClientsAssignesCard(employee: found),
+            ],
+          );
         },
       ),
     );
@@ -142,6 +152,81 @@ class _EmployeeInfoCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Clients assignés à cet employé (pertinent surtout pour un rôle Agent —
+/// voir `Client.agentAssigneId`, `assign_agent_sheet.dart`). Filtré depuis la
+/// liste des clients déjà chargée par `clientListControllerProvider` : pas
+/// besoin d'un endpoint dédié `GET /utilisateurs/{id}/clients`.
+class _ClientsAssignesCard extends ConsumerWidget {
+  final Employee employee;
+  const _ClientsAssignesCard({required this.employee});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clientsAsync = ref.watch(clientListControllerProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Clients assignés', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            clientsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => const Text('Impossible de charger les clients'),
+              data: (clients) {
+                final assignes =
+                    clients.where((c) => c.agentAssigneId == employee.id).toList();
+                if (assignes.isEmpty) {
+                  return Text(
+                    'Aucun client assigné pour l\'instant',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (var i = 0; i < assignes.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _ClientAssigneTile(client: assignes[i]),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClientAssigneTile extends StatelessWidget {
+  final Client client;
+  const _ClientAssigneTile({required this.client});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: colorScheme.primary,
+        child: Text(
+          client.prenom.isNotEmpty ? client.prenom[0].toUpperCase() : '?',
+          style: TextStyle(color: colorScheme.onPrimary),
+        ),
+      ),
+      title: Text(client.nomComplet),
+      subtitle: Text(client.telephone),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => context.push('/admin/clients/${client.id}'),
     );
   }
 }

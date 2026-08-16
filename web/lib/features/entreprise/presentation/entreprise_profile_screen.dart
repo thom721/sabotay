@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -216,12 +219,20 @@ class _ProfileInfoCard extends ConsumerStatefulWidget {
   ConsumerState<_ProfileInfoCard> createState() => _ProfileInfoCardState();
 }
 
+// Taille max côté client (≈1 Mo décodé) — même plafond que le backend
+// (voir _TAILLE_MAX_LOGO_DATA, endpoints/entreprises.py) : évite un
+// aller-retour réseau juste pour se faire rejeter par le serveur.
+const _tailleMaxLogoOctets = 1000000;
+
 class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
   final _formKey = GlobalKey<FormState>();
   late final _nomController = TextEditingController(text: widget.profile.nom);
   late final _adresseController = TextEditingController(text: widget.profile.adresse ?? '');
   late final _telephoneController =
       TextEditingController(text: widget.profile.telephoneContact ?? '');
+  late final _fraisRetraitController =
+      TextEditingController(text: widget.profile.fraisRetrait.toString());
+  late String? _logoData = widget.profile.logoData;
   bool _isSaving = false;
 
   @override
@@ -229,7 +240,38 @@ class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
     _nomController.dispose();
     _adresseController.dispose();
     _telephoneController.dispose();
+    _fraisRetraitController.dispose();
     super.dispose();
+  }
+
+  Future<void> _choisirLogo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final fichier = result?.files.firstOrNull;
+    if (fichier == null || fichier.bytes == null) return;
+
+    if (fichier.bytes!.length > _tailleMaxLogoOctets) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image trop volumineuse (max ~1 Mo)')),
+        );
+      }
+      return;
+    }
+
+    final extension = (fichier.extension ?? '').toLowerCase();
+    final mime = switch (extension) {
+      'png' => 'image/png',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'webp' => 'image/webp',
+      'gif' => 'image/gif',
+      _ => 'image/png',
+    };
+    setState(() {
+      _logoData = 'data:$mime;base64,${base64Encode(fichier.bytes!)}';
+    });
   }
 
   Future<void> _submit() async {
@@ -244,6 +286,8 @@ class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
             telephoneContact: _telephoneController.text.trim().isEmpty
                 ? null
                 : _telephoneController.text.trim(),
+            fraisRetrait: num.tryParse(_fraisRetraitController.text.trim()) ?? 0,
+            logoData: _logoData,
           );
       ref.invalidate(entrepriseProfileProvider);
       if (mounted) {
@@ -264,6 +308,8 @@ class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -273,6 +319,42 @@ class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Row(
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _logoData == null
+                        ? Icon(Icons.storefront_outlined, color: colorScheme.onSurfaceVariant)
+                        : Image.memory(
+                            base64Decode(_logoData!.split(',').last),
+                            fit: BoxFit.contain,
+                          ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Logo', style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 4),
+                        OutlinedButton.icon(
+                          onPressed: _choisirLogo,
+                          icon: const Icon(Icons.upload_outlined, size: 16),
+                          label: Text(_logoData == null ? 'Ajouter un logo' : 'Changer le logo'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _nomController,
                 textInputAction: TextInputAction.next,
@@ -290,8 +372,25 @@ class _ProfileInfoCardState extends ConsumerState<_ProfileInfoCard> {
               TextFormField(
                 controller: _telephoneController,
                 keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.done,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'Téléphone de contact (optionnel)'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _fraisRetraitController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Frais de retrait',
+                  helperText: 'Déduit du montant demandé par le client au moment du retrait — '
+                      'le client reçoit le montant demandé moins ce frais. 0 = aucun frais.',
+                  helperMaxLines: 2,
+                ),
+                validator: (value) {
+                  final v = num.tryParse((value ?? '').trim());
+                  if (v == null || v < 0) return 'Montant invalide';
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
               Align(

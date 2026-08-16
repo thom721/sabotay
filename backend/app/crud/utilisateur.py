@@ -1,10 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import or_, select
 
+import logging
+
 from app.core.notifications import send_email
 from app.core.security import generate_temp_password, hash_password
 from app.models.utilisateur import RoleUtilisateur, StatutUtilisateur, Utilisateur
 from app.schemas.utilisateur import UtilisateurCreate
+
+logger = logging.getLogger("sabotaypro.utilisateur")
 
 
 async def get_by_telephone_ou_email(
@@ -38,14 +42,26 @@ async def create(
     await session.commit()
     await session.refresh(utilisateur)
 
-    await send_email(
-        utilisateur.email,
-        "Bienvenue sur SabotayPro",
-        f"Un compte employé a été créé pour vous. Identifiant : {utilisateur.email} "
-        f"(ou votre téléphone : {utilisateur.telephone})\n"
-        f"Mot de passe temporaire : {temp_password}\n"
-        "Vous devrez le changer à la première connexion.",
-    )
+    email_envoye = False
+    try:
+        email_envoye = await send_email(
+            utilisateur.email,
+            "Bienvenue sur SabotayPro",
+            f"Un compte employé a été créé pour vous. Identifiant : {utilisateur.email} "
+            f"(ou votre téléphone : {utilisateur.telephone})\n"
+            f"Mot de passe temporaire : {temp_password}\n"
+            "Vous devrez le changer à la première connexion.",
+        )
+    except Exception:
+        logger.exception("Échec d'envoi de l'email de bienvenue pour l'employé %s", utilisateur.id)
+        email_envoye = False
+
+    # Champs hors table, ajoutés dynamiquement pour que l'appelant (endpoint,
+    # via UtilisateurRead) puisse afficher le mot de passe à l'écran quand
+    # l'email n'a pas pu être remis — sinon il serait perdu (jamais stocké en
+    # clair).
+    utilisateur.email_envoye = email_envoye
+    utilisateur.mot_de_passe_temporaire = None if email_envoye else temp_password
 
     return utilisateur
 

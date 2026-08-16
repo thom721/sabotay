@@ -46,6 +46,12 @@ dependencies:
   cryptography: ^2.7.0
   shared_preferences: ^2.3.3
 
+  # Imprimantes thermiques — reçus de paiement (collecte/retrait), même
+  # approche que pos_api : détection Sunmi (terminal POS intégré), sinon
+  # imprimante Bluetooth ESC/POS appairée, sinon repli PDF/système.
+  print_bluetooth_thermal: ^1.2.2
+  sunmi_printer_plus: ^4.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,6 +62,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -98,3 +105,19 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+  assets:
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#D31E28"

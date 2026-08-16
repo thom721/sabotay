@@ -3,9 +3,13 @@ from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+import logging
+
 from app.core.notifications import send_email
 from app.core.security import generate_temp_password, hash_password
 from app.models.client import Client
+
+logger = logging.getLogger("sabotaypro.client")
 
 
 async def find_duplicate(
@@ -55,14 +59,25 @@ async def create(session: AsyncSession, *, entreprise_id: str, data: dict) -> Cl
     await session.commit()
     await session.refresh(client)
 
+    email_envoye = False
     if client.email and temp_password:
-        await send_email(
-            client.email,
-            "Bienvenue sur votre espace client SabotayPro",
-            f"Un compte a été créé pour vous. Identifiant : {client.email}\n"
-            f"Mot de passe temporaire : {temp_password}\n"
-            "Vous devrez le changer à la première connexion.",
-        )
+        try:
+            email_envoye = await send_email(
+                client.email,
+                "Bienvenue sur votre espace client SabotayPro",
+                f"Un compte a été créé pour vous. Identifiant : {client.email}\n"
+                f"Mot de passe temporaire : {temp_password}\n"
+                "Vous devrez le changer à la première connexion.",
+            )
+        except Exception:
+            logger.exception("Échec d'envoi de l'email de bienvenue pour le client %s", client.id)
+            email_envoye = False
+
+    # Champs hors table, ajoutés dynamiquement pour que l'appelant (endpoint,
+    # via ClientRead) puisse afficher le mot de passe à l'écran quand l'email
+    # n'a pas pu être remis — sinon il serait perdu (jamais stocké en clair).
+    client.email_envoye = email_envoye
+    client.mot_de_passe_temporaire = None if email_envoye else temp_password
 
     return client
 

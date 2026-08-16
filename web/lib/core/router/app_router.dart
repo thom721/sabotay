@@ -26,6 +26,8 @@ import '../../features/employees/presentation/employee_detail_screen.dart';
 import '../../features/employees/presentation/employee_list_screen.dart';
 import '../../features/entreprise/presentation/entreprise_profile_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/rapports/presentation/rapport_screen.dart';
+import '../../features/transactions/presentation/transaction_registre_screen.dart';
 import '../../features/setup_bureau/presentation/setup_bureau_screen.dart';
 import '../../features/setup_bureau/presentation/setup_providers.dart';
 import '../../features/superadmin/presentation/superadmin_bootstrap_screen.dart';
@@ -216,6 +218,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/clients/:clientId',
             builder: (context, state) =>
                 ClientDetailScreen(clientId: state.pathParameters['clientId']!),
+          ),
+          GoRoute(
+            path: '/admin/transactions',
+            builder: (context, state) => const TransactionRegistreScreen(),
+          ),
+          GoRoute(
+            path: '/admin/rapports',
+            builder: (context, state) => const RapportScreen(),
           ),
           GoRoute(
             path: '/admin/entreprise',

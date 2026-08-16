@@ -22,6 +22,11 @@ class Employee {
   final StatutUtilisateur statut;
   final bool doitChangerMotDePasse;
   final DateTime? derniereConnexion;
+  /// Présents uniquement dans la réponse juste après la création — indique
+  /// si l'email de bienvenue a pu être livré, et si non, le mot de passe à
+  /// communiquer manuellement (jamais renvoyé par le backend autrement).
+  final bool? emailEnvoye;
+  final String? motDePasseTemporaire;
 
   const Employee({
     required this.id,
@@ -37,6 +42,8 @@ class Employee {
     required this.statut,
     required this.doitChangerMotDePasse,
     required this.derniereConnexion,
+    this.emailEnvoye,
+    this.motDePasseTemporaire,
   });
 
   /// Nom complet "Prénom Nom", pour l'affichage.
@@ -60,5 +67,7 @@ class Employee {
         derniereConnexion: json['derniere_connexion'] == null
             ? null
             : DateTime.tryParse(json['derniere_connexion'] as String),
+        emailEnvoye: json['email_envoye'] as bool?,
+        motDePasseTemporaire: json['mot_de_passe_temporaire'] as String?,
       );
 }

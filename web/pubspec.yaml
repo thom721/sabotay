@@ -46,6 +46,10 @@ dependencies:
   printing: ^5.15.0
   cryptography: ^2.7.0
   fl_chart: ^0.69.0
+  # Sélection du logo entreprise (image) — multiplateforme (web, Windows,
+  # macOS), withData:true pour récupérer les bytes directement, nécessaire
+  # sur ces trois cibles sans dépendre d'un chemin de fichier local.
+  file_picker: ^8.1.6
   flutter_localizations:
     sdk: flutter
   flutter_web_plugins:
@@ -61,6 +65,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -103,3 +108,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+  assets:
+    - assets/icon/
+
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#D31E28"
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    icon_size: 256

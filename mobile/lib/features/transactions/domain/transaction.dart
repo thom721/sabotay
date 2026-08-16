@@ -11,6 +11,7 @@ String typeTransactionLabel(TypeTransaction type) =>
 
 class Transaction {
   final String id;
+  final String numero;
   final String entrepriseId;
   final String compteId;
   final DateTime date;
@@ -24,6 +25,7 @@ class Transaction {
 
   const Transaction({
     required this.id,
+    required this.numero,
     required this.entrepriseId,
     required this.compteId,
     required this.date,
@@ -38,6 +40,7 @@ class Transaction {
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
         id: json['id'] as String,
+        numero: json['numero'] as String,
         entrepriseId: json['entreprise_id'] as String,
         compteId: json['compte_id'] as String,
         date: DateTime.parse(json['date'] as String),

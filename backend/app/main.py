@@ -45,13 +45,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     tache_sync: asyncio.Task | None = None
     if settings.LOCAL_MODE:
         # Le SQLite local n'est jamais migré via Alembic (voir core/db.py) —
-        # schéma dérivé des modèles actuels à chaque démarrage.
+        # schéma dérivé des modèles actuels à chaque démarrage. create_all()
+        # ne crée que les tables manquantes ; sync_schema_local() complète en
+        # ajoutant les colonnes manquantes sur les tables déjà existantes
+        # (même rôle que _sync_schema_from_models() côté pos_api).
         from sqlmodel import SQLModel
 
-        from app.core.db import engine
+        from app.core.db import engine, sync_schema_local
 
         async with engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
+            await conn.run_sync(sync_schema_local)
 
         tache_sync = asyncio.create_task(_boucle_sync_periodique())
 

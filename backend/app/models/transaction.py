@@ -13,10 +13,24 @@ class TypeTransaction(StrEnum):
     RETRAIT = "retrait"
 
 
+def _generate_numero() -> str:
+    """Numéro de reçu lisible, ex. "TR-20260817143022137" — préféré à un
+    compteur séquentiel par tenant (pas de verrou/course à gérer, contraire-
+    ment à `CompteSabotay.numero_compte`) : timestamp à la milliseconde,
+    collision pratiquement impossible même en cas de saisies concurrentes.
+    Remplace l'UUID technique (`transaction.id`) affiché tel quel sur les
+    reçus jusqu'ici (voir EPICS.md, Epic 3)."""
+    horodatage = now_local()
+    return f"TR-{horodatage:%Y%m%d%H%M%S}{horodatage.microsecond // 1000:03d}"
+
+
 class Transaction(SQLModel, table=True):
     __tablename__ = "transactions"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    # Numéro affiché sur les reçus/rapports — voir _generate_numero(). Distinct
+    # de `id` (clé technique, jamais montrée à l'utilisateur).
+    numero: str = Field(default_factory=_generate_numero, index=True)
     # Dénormalisé depuis compte_id pour permettre un filtrage tenant_id direct
     # sur cette table sans jointure (isolation multi-tenant systématique).
     entreprise_id: str = Field(foreign_key="entreprises.id", index=True)

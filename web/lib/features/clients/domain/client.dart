@@ -24,6 +24,11 @@ class Client {
   final String? agentAssigneId;
   final StatutClient statut;
   final DateTime? derniereConnexion;
+  /// Présents uniquement dans la réponse juste après la création — indique
+  /// si l'email de bienvenue a pu être livré, et si non, le mot de passe à
+  /// communiquer manuellement (jamais renvoyé par le backend autrement).
+  final bool? emailEnvoye;
+  final String? motDePasseTemporaire;
 
   const Client({
     required this.id,
@@ -44,6 +49,8 @@ class Client {
     required this.agentAssigneId,
     required this.statut,
     required this.derniereConnexion,
+    this.emailEnvoye,
+    this.motDePasseTemporaire,
   });
 
   /// Nom complet "Prénom Nom", pour l'affichage.
@@ -79,5 +86,7 @@ class Client {
         derniereConnexion: json['derniere_connexion'] == null
             ? null
             : DateTime.tryParse(json['derniere_connexion'] as String),
+        emailEnvoye: json['email_envoye'] as bool?,
+        motDePasseTemporaire: json['mot_de_passe_temporaire'] as String?,
       );
 }

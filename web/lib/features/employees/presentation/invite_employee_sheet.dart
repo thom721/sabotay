@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/email_echec_dialog.dart';
 import '../../auth/domain/user.dart';
 import 'employee_list_controller.dart';
 
@@ -67,7 +68,7 @@ class _InviteEmployeeSheetState extends ConsumerState<_InviteEmployeeSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      await ref.read(employeeListControllerProvider.notifier).invite(
+      final employee = await ref.read(employeeListControllerProvider.notifier).invite(
             nom: _nomController.text.trim(),
             prenom: _prenomController.text.trim(),
             telephone: _telephoneController.text.trim(),
@@ -77,7 +78,15 @@ class _InviteEmployeeSheetState extends ConsumerState<_InviteEmployeeSheet> {
             adresse: _emptyToNull(_adresseController),
             role: _role,
           );
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      if (employee.motDePasseTemporaire != null) {
+        await showEmailEchecMotDePasseDialog(
+          context,
+          identifiant: employee.email ?? employee.telephone,
+          motDePasse: employee.motDePasseTemporaire!,
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);

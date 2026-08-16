@@ -30,6 +30,15 @@ class Entreprise(SQLModel, table=True):
     # Texte personnalisé imprimé en bas du reçu de collecte (ex: "Merci de votre
     # confiance"). Configuré séparément des informations générales de l'entreprise.
     texte_bas_recu: str | None = Field(default=None)
+    # Logo de l'entreprise, encodé en data URI ("data:image/png;base64,...").
+    # Choix délibéré plutôt qu'un fichier sur disque + URL : aucune infra de
+    # stockage de fichiers n'existe dans ce repo (ni côté cloud ni côté poste
+    # bureau), et `entreprises` fait déjà partie des entités synchronisées
+    # (voir sync.py::ENTITES) — un simple champ texte traverse ce mécanisme
+    # générique sans rien y ajouter, contrairement à un fichier qu'il aurait
+    # fallu transférer séparément entre cloud et poste local. Taille plafonnée
+    # à l'upload (voir endpoints/entreprises.py) pour ne pas alourdir sync/DB.
+    logo_data: str | None = Field(default=None)
     # Frais fixe appliqué à chaque retrait — configuré côté web (pas d'écran
     # de config web dans ce repo pour l'instant, mais le mobile doit déjà
     # respecter cette valeur sans pouvoir la modifier).

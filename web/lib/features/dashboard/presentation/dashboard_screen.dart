@@ -17,6 +17,8 @@ const adminNavItems = [
   NavItem(icon: Icons.space_dashboard_outlined, label: 'Tableau de bord', route: '/admin'),
   NavItem(icon: Icons.groups_outlined, label: 'Clients', route: '/admin/clients'),
   NavItem(icon: Icons.badge_outlined, label: 'Employés', route: '/admin/employes'),
+  NavItem(icon: Icons.receipt_outlined, label: 'Transactions', route: '/admin/transactions'),
+  NavItem(icon: Icons.summarize_outlined, label: 'Rapports', route: '/admin/rapports'),
   NavItem(icon: Icons.storefront_outlined, label: 'Entreprise', route: '/admin/entreprise'),
   NavItem(icon: Icons.receipt_long_outlined, label: 'Abonnement', route: '/admin/abonnement'),
 ];
