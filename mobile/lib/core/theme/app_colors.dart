@@ -17,8 +17,14 @@ class AppColors {
 
   // primary (pos_api)
   static const navy = Color(0xFF0077C5);
+  // primaryDark (pos_api) — variante plus foncée du bleu principal (hover/
+  // pressed en usage pos_api), distincte de navyDark ci-dessous.
+  static const primaryDark = Color(0xFF005A9C);
   // sidebarSelected (pos_api) — bleu vif prévu par pos_api lui-même pour
-  // rester lisible sur un fond sombre.
+  // rester lisible sur son fond de sidebar sombre ; réutilisé comme couleur
+  // primaire du thème sombre de l'app (meilleur contraste que primaryDark,
+  // trop proche du fond, sur un écran presque noir — pos_api n'ayant pas de
+  // mode sombre, il n'existe pas de choix "officiel" pour ce cas).
   static const navyDark = Color(0xFF2563EB);
 
   // accent (pos_api)
@@ -40,6 +46,21 @@ class AppColors {
   // info (pos_api) — même bleu déjà repris côté web (dashboard_screen.dart,
   // carte "Clients actifs") : palette cohérente entre web et mobile.
   static const slate = Color(0xFF3182CE);
+
+  // warning (pos_api) — pas encore raccroché à un rôle du ColorScheme
+  // (primary/secondary/tertiary/error ne suffisent pas à 5 rôles), exposé
+  // tel quel pour les écrans qui ont besoin d'un badge "en retard"/"partiel"
+  // distinct de l'erreur pure (voir aussi statusPartial ci-dessous).
+  static const warning = Color(0xFFD69E2E);
+
+  // Couleurs de statut (pos_api, core/theme.dart::AppColors + statusColor())
+  // — réutilisent volontairement success/warning/error/textSecondary, comme
+  // pos_api lui-même. Utile pour les badges collecte/retrait, statuts de
+  // compte, etc.
+  static const statusPaid = emeraldDark; // success, 0xFF38A169
+  static const statusPartial = warning; // 0xFFD69E2E
+  static const statusUnpaid = crimson; // error, 0xFFE53E3E
+  static const statusPending = lightMuted; // textSecondary, 0xFF718096
 
   // background / surface / textPrimary / textSecondary / divider (pos_api)
   static const lightBg = Color(0xFFF0F2F5);

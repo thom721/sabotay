@@ -20,18 +20,24 @@ class AppFonts {
 class AppTheme {
   AppTheme._();
 
-  static TextTheme _textTheme(Color ink) {
+  // Tailles reprises telles quelles de pos_api (core/theme.dart, _T.t(...))
+  // pour les styles qu'il définit explicitement — display large/medium,
+  // title large/medium, body large/medium/small, label large. Les autres
+  // (headline*, displaySmall, titleSmall, labelMedium/Small), non couverts
+  // par pos_api, gardent l'échelle Material 3 par défaut déjà en place.
+  static TextTheme _textTheme(Color ink, Color muted) {
     const base = TextTheme(
       displayLarge: TextStyle(
         fontFamily: AppFonts.body,
         fontFamilyFallback: AppFonts.bodyFallback,
-        fontWeight: FontWeight.bold,
-        letterSpacing: -0.02,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
       ),
       displayMedium: TextStyle(
         fontFamily: AppFonts.body,
         fontFamilyFallback: AppFonts.bodyFallback,
-        fontWeight: FontWeight.bold,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
       ),
       displaySmall: TextStyle(fontFamily: AppFonts.body, fontFamilyFallback: AppFonts.bodyFallback),
       headlineLarge: TextStyle(
@@ -53,11 +59,13 @@ class AppTheme {
       titleLarge: TextStyle(
         fontFamily: AppFonts.body,
         fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
       titleMedium: TextStyle(
         fontFamily: AppFonts.body,
         fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 16,
         fontWeight: FontWeight.w600,
       ),
       titleSmall: TextStyle(
@@ -65,12 +73,25 @@ class AppTheme {
         fontFamilyFallback: AppFonts.bodyFallback,
         fontWeight: FontWeight.w600,
       ),
-      bodyLarge: TextStyle(fontFamily: AppFonts.body, fontFamilyFallback: AppFonts.bodyFallback),
-      bodyMedium: TextStyle(fontFamily: AppFonts.body, fontFamilyFallback: AppFonts.bodyFallback),
-      bodySmall: TextStyle(fontFamily: AppFonts.body, fontFamilyFallback: AppFonts.bodyFallback),
+      bodyLarge: TextStyle(
+        fontFamily: AppFonts.body,
+        fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 15,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: AppFonts.body,
+        fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 14,
+      ),
+      bodySmall: TextStyle(
+        fontFamily: AppFonts.body,
+        fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 12,
+      ),
       labelLarge: TextStyle(
         fontFamily: AppFonts.body,
         fontFamilyFallback: AppFonts.bodyFallback,
+        fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
       labelMedium: TextStyle(
@@ -86,7 +107,12 @@ class AppTheme {
         letterSpacing: 0.2,
       ),
     );
-    return base.apply(bodyColor: ink, displayColor: ink);
+    // bodySmall en couleur atténuée (textSecondary côté pos_api) — appliqué
+    // après .apply() qui, sinon, écraserait cette couleur avec `ink` comme
+    // tous les autres styles.
+    return base.apply(bodyColor: ink, displayColor: ink).copyWith(
+          bodySmall: base.bodySmall?.copyWith(color: muted),
+        );
   }
 
   /// Style pour les chiffres mis en avant (statistiques, montants) — police
@@ -163,35 +189,71 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: scaffoldBg,
-      textTheme: _textTheme(colorScheme.onSurface),
+      textTheme: _textTheme(colorScheme.onSurface, colorScheme.onSurfaceVariant),
+      // toolbarHeight/scrolledUnderElevation/surfaceTintColor : valeurs
+      // reprises telles quelles de pos_api (core/theme.dart::AppTheme.light,
+      // appBarTheme) — sans surfaceTintColor: transparent, Material 3 teinte
+      // l'AppBar quand le contenu défile dessous (scrolledUnderElevation).
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
+        scrolledUnderElevation: 1,
+        surfaceTintColor: Colors.transparent,
+        toolbarHeight: 64,
         titleTextStyle: TextStyle(
           fontFamily: AppFonts.body,
           fontFamilyFallback: AppFonts.bodyFallback,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          fontSize: 18,
           color: colorScheme.onSurface,
         ),
       ),
+      // Rayon 12 + bordure fine + margin zéro : valeurs pos_api telles
+      // quelles (radius 16 et pas de margin explicite auparavant).
       cardTheme: CardThemeData(
         color: colorScheme.surface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
+      // Fond blanc (surface) + bordure colorée, comme pos_api — remplace
+      // l'ancien choix "fillColor: surfaceVariant" (Epic 4) qui distinguait
+      // un champ de sa Card/BottomSheet par une teinte de fond ; ici c'est
+      // la bordure qui joue ce rôle à la place, à l'identique de pos_api.
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
-        // surfaceVariant, pas surface : un champ rempli de la même couleur
-        // que la Card/le BottomSheet qui le contient (formulaires en
-        // showModalBottomSheet, très fréquent côté mobile) s'y fond
-        // visuellement, ne laissant que le contour fin pour le distinguer.
-        fillColor: colorScheme.surfaceVariant,
+        fillColor: colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: TextStyle(
+          fontFamily: AppFonts.body,
+          fontFamilyFallback: AppFonts.bodyFallback,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        labelStyle: TextStyle(
+          fontFamily: AppFonts.body,
+          fontFamilyFallback: AppFonts.bodyFallback,
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -202,6 +264,8 @@ class AppTheme {
           // web, voir son app_theme.dart).
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           // Largeur minimale finie : un Size.fromHeight (largeur infinie)
           // fait planter tout bouton placé dans une Row/Wrap plutôt qu'étiré
           // par une Column(crossAxisAlignment: stretch).
@@ -209,8 +273,21 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
+      // Absent jusqu'ici — pos_api en définit un explicitement.
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.primary),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      // Rectangle à coins légèrement arrondis (radius 6), comme pos_api —
+      // remplace l'ancienne forme "pilule" (radius 999) utilisée jusqu'ici.
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        backgroundColor: colorScheme.surfaceVariant,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         side: BorderSide.none,
       ),
       dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, space: 1),
