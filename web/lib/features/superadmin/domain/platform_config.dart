@@ -3,6 +3,10 @@
 /// `core/notifications.py::send_email` côté backend.
 class PlatformConfig {
   final int abonnementMontantHtg;
+  // Prix du PROCHAIN renouvellement, distinct du prix courant — null si
+  // aucun changement de prix n'est annoncé (le renouvellement se fait alors
+  // au même prix que abonnementMontantHtg).
+  final int? abonnementRenouvellementHtg;
   final int essaiJours;
   final String? smtpHost;
   final int smtpPort;
@@ -13,6 +17,7 @@ class PlatformConfig {
 
   const PlatformConfig({
     required this.abonnementMontantHtg,
+    required this.abonnementRenouvellementHtg,
     required this.essaiJours,
     required this.smtpHost,
     required this.smtpPort,
@@ -23,6 +28,7 @@ class PlatformConfig {
 
   factory PlatformConfig.fromJson(Map<String, dynamic> json) => PlatformConfig(
         abonnementMontantHtg: json['abonnement_montant_htg'] as int,
+        abonnementRenouvellementHtg: json['abonnement_renouvellement_htg'] as int?,
         essaiJours: json['essai_jours'] as int,
         smtpHost: json['smtp_host'] as String?,
         smtpPort: json['smtp_port'] as int,

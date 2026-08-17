@@ -114,11 +114,16 @@ class SuperAdminRepository {
 
   Future<PlatformConfig> updatePlatformConfig({
     required int montant,
+    required int montantRenouvellement,
     required int essaiJours,
   }) async {
     final response = await _dio.patch(
       '/superadmin/config',
-      data: {'abonnement_montant_htg': montant, 'essai_jours': essaiJours},
+      data: {
+        'abonnement_montant_htg': montant,
+        'abonnement_renouvellement_htg': montantRenouvellement,
+        'essai_jours': essaiJours,
+      },
     );
     return PlatformConfig.fromJson(response.data as Map<String, dynamic>);
   }

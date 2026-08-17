@@ -14,6 +14,12 @@ class AbonnementRead(SQLModel):
     date_debut: date
     date_renouvellement: date | None
     date_paiement: datetime | None
+    # Prix qui sera réellement facturé au prochain renouvellement — distinct
+    # de `montant` (le prix du DERNIER paiement confirmé, déjà passé) tant
+    # qu'aucun paiement n'a encore eu lieu à ce nouveau prix. Toujours
+    # renseigné (retombe sur PlatformConfig.abonnement_montant_htg si aucun
+    # prix de renouvellement n'est annoncé) — voir read_abonnement.
+    montant_prochain_renouvellement: int
 
 
 class AbonnementPayerResponse(SQLModel):

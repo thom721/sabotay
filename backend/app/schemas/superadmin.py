@@ -89,6 +89,9 @@ class SuperAdminStatutUpdate(SQLModel):
 
 class PlatformConfigRead(SQLModel):
     abonnement_montant_htg: int
+    # Prix du PROCHAIN renouvellement, distinct du prix courant — None si
+    # aucun changement de prix n'est annoncé (voir PlatformConfig).
+    abonnement_renouvellement_htg: int | None
     essai_jours: int
     smtp_host: str | None
     smtp_port: int
@@ -104,6 +107,7 @@ class PlatformConfigUpdate(SQLModel):
     # envoyer uniquement ses propres champs sans écraser les autres (voir
     # crud.platform_config.update, exclude_unset).
     abonnement_montant_htg: int | None = None
+    abonnement_renouvellement_htg: int | None = None
     essai_jours: int | None = None
     smtp_host: str | None = None
     smtp_port: int | None = None

@@ -77,13 +77,37 @@ async def _get_abonnement_for_tenant(session: SessionDep, entreprise_id: str) ->
     return abonnement
 
 
+def _montant_renouvellement(platform_config) -> int:
+    """Prix effectivement facturé à un (re)paiement — le prix de
+    renouvellement annoncé s'il est configuré, sinon le prix courant. Seule
+    source de vérité pour ce montant : voir payer_abonnement,
+    verifier_abonnement, declarer_paiement_especes."""
+    return platform_config.abonnement_renouvellement_htg or platform_config.abonnement_montant_htg
+
+
+async def _to_abonnement_read(session: SessionDep, abonnement: Abonnement) -> AbonnementRead:
+    platform_config = await crud_platform_config.get(session)
+    return AbonnementRead(
+        id=abonnement.id,
+        entreprise_id=abonnement.entreprise_id,
+        plan=abonnement.plan,
+        statut=abonnement.statut,
+        montant=abonnement.montant,
+        date_debut=abonnement.date_debut,
+        date_renouvellement=abonnement.date_renouvellement,
+        date_paiement=abonnement.date_paiement,
+        montant_prochain_renouvellement=_montant_renouvellement(platform_config),
+    )
+
+
 @router.get("", response_model=AbonnementRead)
-async def read_abonnement(session: SessionDep, entreprise_id: TenantIdOrSync) -> Abonnement:
+async def read_abonnement(session: SessionDep, entreprise_id: TenantIdOrSync) -> AbonnementRead:
     """Consultation de l'abonnement du tenant courant (tout utilisateur staff
     authentifié, ou jeton de sync — voir _proxy_cloud_get)."""
     if settings.LOCAL_MODE:
         return await _proxy_cloud_get("/abonnement")
-    return await _get_abonnement_for_tenant(session, entreprise_id)
+    abonnement = await _get_abonnement_for_tenant(session, entreprise_id)
+    return await _to_abonnement_read(session, abonnement)
 
 
 @router.get("/paiements", response_model=list[PaiementAbonnementRead])
@@ -135,7 +159,7 @@ async def payer_abonnement(session: SessionDep, entreprise_id: TenantId) -> Abon
 
     try:
         result = await moncash.create_payment(
-            amount=platform_config.abonnement_montant_htg, order_id=order_id
+            amount=_montant_renouvellement(platform_config), order_id=order_id
         )
     except MonCashNotConfiguredError:
         raise HTTPException(
@@ -181,14 +205,14 @@ async def verifier_abonnement(
 
     if payment is None:
         return AbonnementVerifierResponse(
-            paye=False, abonnement=AbonnementRead.model_validate(abonnement)
+            paye=False, abonnement=await _to_abonnement_read(session, abonnement)
         )
 
     now = now_local()
     # Montant réellement facturé lors de POST /payer, pas l'ancien
     # abonnement.montant (qui ne reflète que le dernier paiement confirmé —
     # sinon un changement de prix entre-temps ne se répercute jamais).
-    montant_paye = (await crud_platform_config.get(session)).abonnement_montant_htg
+    montant_paye = _montant_renouvellement(await crud_platform_config.get(session))
     abonnement.statut = StatutAbonnement.ACTIF
     abonnement.date_paiement = now
     abonnement.date_renouvellement = (now + timedelta(days=365)).date()
@@ -211,7 +235,7 @@ async def verifier_abonnement(
     await session.refresh(abonnement)
 
     return AbonnementVerifierResponse(
-        paye=True, abonnement=AbonnementRead.model_validate(abonnement)
+        paye=True, abonnement=await _to_abonnement_read(session, abonnement)
     )
 
 
@@ -237,7 +261,7 @@ async def declarer_paiement_especes(
     paiement = PaiementAbonnement(
         abonnement_id=abonnement.id,
         entreprise_id=entreprise_id,
-        montant=platform_config.abonnement_montant_htg,
+        montant=_montant_renouvellement(platform_config),
         methode="especes",
         statut="en_attente",
         paye_par_id=current_user.id,
@@ -256,7 +280,7 @@ async def declarer_paiement_especes(
 )
 async def marquer_paye_dev(
     session: SessionDep, entreprise_id: TenantId, current_user: CurrentUser
-) -> Abonnement:
+) -> AbonnementRead:
     """DEV UNIQUEMENT — active l'abonnement du tenant sans passer par MonCash.
 
     Sert exclusivement à tester le blocage de POST /transactions tant qu'aucun
@@ -289,4 +313,4 @@ async def marquer_paye_dev(
     )
     await session.commit()
     await session.refresh(abonnement)
-    return abonnement
+    return await _to_abonnement_read(session, abonnement)

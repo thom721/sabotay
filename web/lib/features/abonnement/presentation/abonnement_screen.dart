@@ -334,6 +334,7 @@ class _StatutCard extends StatelessWidget {
             if (abonnement.dateRenouvellement != null) ...[
               const SizedBox(height: 8),
               Text(
+                '${_montantFormat.format(abonnement.montantProchainRenouvellement)} HTG · '
                 'Renouvellement : ${_dateFormat.format(abonnement.dateRenouvellement!)}',
                 style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),

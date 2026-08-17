@@ -115,6 +115,7 @@ class _AbonnementTab extends ConsumerStatefulWidget {
 class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _montantController;
+  late final TextEditingController _renouvellementController;
   late final TextEditingController _essaiController;
   bool _isSaving = false;
 
@@ -123,12 +124,20 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
     super.initState();
     _montantController =
         TextEditingController(text: widget.config.abonnementMontantHtg.toString());
+    // Vide (pas "aucun changement") tant qu'aucun prix de renouvellement
+    // distinct n'a jamais été enregistré — évite de renvoyer silencieusement
+    // le prix courant comme prix de renouvellement au premier submit alors
+    // que rien n'a été explicitement décidé pour ce champ.
+    _renouvellementController = TextEditingController(
+      text: widget.config.abonnementRenouvellementHtg?.toString() ?? '',
+    );
     _essaiController = TextEditingController(text: widget.config.essaiJours.toString());
   }
 
   @override
   void dispose() {
     _montantController.dispose();
+    _renouvellementController.dispose();
     _essaiController.dispose();
     super.dispose();
   }
@@ -137,8 +146,14 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
+      final renouvellementSaisi = _renouvellementController.text.trim();
       await ref.read(platformConfigControllerProvider.notifier).updateConfig(
             montant: int.parse(_montantController.text),
+            // Vide = pas de changement de prix annoncé, renouvellement au
+            // prix courant (voir _montant_renouvellement côté backend).
+            montantRenouvellement: renouvellementSaisi.isEmpty
+                ? int.parse(_montantController.text)
+                : int.parse(renouvellementSaisi),
             essaiJours: int.parse(_essaiController.text),
           );
       if (mounted) {
@@ -197,6 +212,22 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
                             return null;
                           },
                         );
+                        final renouvellementField = TextFormField(
+                          controller: _renouvellementController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Prix de renouvellement (HTG)',
+                            helperText: 'Vide = même prix que ci-dessus',
+                            helperMaxLines: 2,
+                          ),
+                          validator: (value) {
+                            final trimmed = (value ?? '').trim();
+                            if (trimmed.isEmpty) return null;
+                            final parsed = int.tryParse(trimmed);
+                            if (parsed == null || parsed <= 0) return 'Montant invalide';
+                            return null;
+                          },
+                        );
                         final essaiField = TextFormField(
                           controller: _essaiController,
                           keyboardType: TextInputType.number,
@@ -214,6 +245,8 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
                             children: [
                               montantField,
                               const SizedBox(height: 16),
+                              renouvellementField,
+                              const SizedBox(height: 16),
                               essaiField,
                             ],
                           );
@@ -223,10 +256,23 @@ class _AbonnementTabState extends ConsumerState<_AbonnementTab> {
                           children: [
                             Expanded(child: montantField),
                             const SizedBox(width: 16),
+                            Expanded(child: renouvellementField),
+                            const SizedBox(width: 16),
                             Expanded(child: essaiField),
                           ],
                         );
                       },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Le prix de renouvellement (ou le montant abonnement annuel s\'il '
+                      'est vide) est affiché à chaque entreprise sur sa page Abonnement, '
+                      'et c\'est ce prix qui sera réellement facturé à son prochain '
+                      'renouvellement.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),

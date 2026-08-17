@@ -13,10 +13,16 @@ class PlatformConfigController extends AsyncNotifier<PlatformConfig> {
   Future<PlatformConfig> build() =>
       ref.watch(superAdminRepositoryProvider).getPlatformConfig();
 
-  Future<void> updateConfig({required int montant, required int essaiJours}) async {
-    await ref
-        .read(superAdminRepositoryProvider)
-        .updatePlatformConfig(montant: montant, essaiJours: essaiJours);
+  Future<void> updateConfig({
+    required int montant,
+    required int montantRenouvellement,
+    required int essaiJours,
+  }) async {
+    await ref.read(superAdminRepositoryProvider).updatePlatformConfig(
+          montant: montant,
+          montantRenouvellement: montantRenouvellement,
+          essaiJours: essaiJours,
+        );
     state = const AsyncLoading<PlatformConfig>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(superAdminRepositoryProvider).getPlatformConfig(),

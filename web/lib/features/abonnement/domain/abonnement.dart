@@ -18,6 +18,10 @@ class Abonnement {
   final DateTime? dateDebut;
   final DateTime? dateRenouvellement;
   final DateTime? datePaiement;
+  // Prix qui sera réellement facturé au prochain renouvellement — peut
+  // différer de [montant] (celui du dernier paiement déjà passé) si le
+  // super-admin a annoncé un changement de prix à l'avance.
+  final num montantProchainRenouvellement;
 
   const Abonnement({
     required this.id,
@@ -28,6 +32,7 @@ class Abonnement {
     required this.dateDebut,
     required this.dateRenouvellement,
     required this.datePaiement,
+    required this.montantProchainRenouvellement,
   });
 
   bool get estActif => statut == 'actif';
@@ -48,5 +53,7 @@ class Abonnement {
         datePaiement: json['date_paiement'] == null
             ? null
             : DateTime.tryParse(json['date_paiement'] as String),
+        montantProchainRenouvellement:
+            num.parse(json['montant_prochain_renouvellement'].toString()),
       );
 }
