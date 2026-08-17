@@ -1,6 +1,7 @@
 import logging
 from typing import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
@@ -13,9 +14,29 @@ if settings.LOCAL_MODE:
     # SQLite local n'est qu'un cache/staging synchronisé avec le cloud, pas
     # une source de vérité versionnée, donc pas de dialecte Postgres-
     # spécifique attendu ici.
+    #
+    # `run_sync_cycle()` (services/local_sync_client.py) écrit dans ce même
+    # fichier SQLite depuis une boucle périodique, en concurrence avec les
+    # requêtes normales (ex. création d'un client) — en mode journal par
+    # défaut (rollback-journal), un writer bloque tout autre writer ET les
+    # readers, avec un délai d'attente par défaut de seulement 5s avant
+    # `database is locked`. Symptôme observé : la requête finit par réussir
+    # une fois le verrou libéré, mais après le délai d'expiration du client
+    # HTTP (10s), qui affiche une erreur alors que la création a bien eu
+    # lieu. WAL (readers jamais bloqués par un writer) + busy_timeout généreux
+    # réduisent drastiquement la fenêtre de contention — n'existe pas côté
+    # cloud (Postgres, MVCC, pas de tâche de fond équivalente).
     engine = create_async_engine(
         f"sqlite+aiosqlite:///{settings.LOCAL_DATABASE_PATH}", echo=False, future=True
     )
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, _record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=20000")
+        cursor.close()
+
 else:
     if not settings.DATABASE_URL:
         raise RuntimeError("DATABASE_URL est requis quand LOCAL_MODE=False")

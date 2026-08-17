@@ -14,6 +14,7 @@ from app.core.dt_utils import now_local
 from app.core.security import hash_password
 from app.models.abonnement import Abonnement, StatutAbonnement
 from app.models.client import Client
+from app.models.code_installation import CodeInstallation, generer_code_installation
 from app.models.entreprise import Entreprise
 from app.models.paiement_abonnement import PaiementAbonnement
 from app.models.super_admin import SuperAdmin
@@ -163,6 +164,7 @@ async def read_statistiques(
 def _to_platform_config_read(config) -> PlatformConfigRead:
     return PlatformConfigRead(
         abonnement_montant_htg=config.abonnement_montant_htg,
+        abonnement_renouvellement_htg=config.abonnement_renouvellement_htg,
         essai_jours=config.essai_jours,
         smtp_host=config.smtp_host,
         smtp_port=config.smtp_port,
@@ -192,6 +194,14 @@ async def update_platform_config(
     if payload.abonnement_montant_htg is not None and payload.abonnement_montant_htg <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Le montant doit être positif"
+        )
+    if (
+        payload.abonnement_renouvellement_htg is not None
+        and payload.abonnement_renouvellement_htg <= 0
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le prix de renouvellement doit être positif",
         )
     if payload.essai_jours is not None and payload.essai_jours <= 0:
         raise HTTPException(
@@ -360,12 +370,14 @@ async def read_entreprise_detail(
 async def reinitialiser_installation(
     entreprise_id: str, session: SessionDep, current_super_admin: CurrentSuperAdmin
 ) -> EntrepriseSuperAdminRead:
-    """Repasse `est_installe` à False — permet à l'entreprise de refaire
-    l'installation bureau (ex. changement de machine). Ne touche pas aux
-    codes d'installation existants : le prochain
-    `GET /entreprises/code-installation` régénère automatiquement un
-    nouveau code puisqu'aucun code non-utilisé ne subsiste après une
-    installation réussie (voir entreprises.py)."""
+    """Repasse `est_installe` à False ET génère un nouveau code d'installation
+    — permet à l'entreprise de refaire l'installation bureau (ex. changement
+    de machine). Génère explicitement le nouveau code ici plutôt que de
+    compter sur `GET /entreprises/code-installation` : depuis que cet
+    endpoint ne régénère plus automatiquement un code après une installation
+    déjà consommée (voir entreprises.py::lire_code_installation), ne
+    toucher qu'`est_installe` laisserait l'Admin bloqué sur "Installation
+    terminée" sans aucun moyen d'obtenir un code utilisable."""
     entreprise = await session.get(Entreprise, entreprise_id)
     if entreprise is None:
         raise HTTPException(
@@ -374,6 +386,17 @@ async def reinitialiser_installation(
 
     entreprise.est_installe = False
     session.add(entreprise)
+
+    statement = select(CodeInstallation).where(
+        CodeInstallation.entreprise_id == entreprise_id, CodeInstallation.utilise == False  # noqa: E712
+    )
+    anciens = (await session.execute(statement)).scalars().all()
+    for ancien in anciens:
+        await session.delete(ancien)
+    session.add(
+        CodeInstallation(entreprise_id=entreprise_id, code=generer_code_installation())
+    )
+
     await session.commit()
 
     return await _build_entreprise_summary(session, entreprise)

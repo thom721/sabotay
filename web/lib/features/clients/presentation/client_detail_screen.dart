@@ -5,9 +5,13 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
+import '../../auth/domain/user.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../../comptes/domain/compte_sabotay.dart';
 import '../../comptes/presentation/compte_providers.dart';
 import '../../comptes/presentation/create_compte_sheet.dart';
+import '../../transactions/presentation/add_collecte_sheet.dart';
+import '../../transactions/presentation/retrait_sheet.dart';
 import '../domain/client.dart';
 import 'client_list_controller.dart';
 
@@ -25,15 +29,22 @@ class ClientDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final clientAsync = ref.watch(clientDetailProvider(clientId));
     final comptesAsync = ref.watch(clientComptesProvider(clientId));
+    final role = ref.watch(authControllerProvider).valueOrNull?.role;
+    // Création de compte réservée à Admin/Manager côté backend
+    // (`POST /comptes`, require_roles ADMIN/MANAGER) — un Agent ne fixe pas
+    // les termes commerciaux d'un compte, il collecte seulement dessus.
+    final peutCreerCompte = role == RoleUtilisateur.admin || role == RoleUtilisateur.manager;
 
     return DashboardContent(
       title: clientAsync.valueOrNull?.nomComplet ?? 'Client',
       backgroundColor: const Color(0xFFF0F2F5),
-      action: ElevatedButton.icon(
-        onPressed: () => showCreateCompteSheet(context, clientId),
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text('Nouveau compte'),
-      ),
+      action: peutCreerCompte
+          ? ElevatedButton.icon(
+              onPressed: () => showCreateCompteSheet(context, clientId),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Nouveau compte'),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -65,7 +76,10 @@ class ClientDetailScreen extends ConsumerWidget {
                 : Column(
                     children: [
                       for (final compte in comptes) ...[
-                        _CompteCard(compte: compte),
+                        _CompteCard(
+                          compte: compte,
+                          clientNom: clientAsync.valueOrNull?.nomComplet,
+                        ),
                         const SizedBox(height: 12),
                       ],
                     ],
@@ -197,7 +211,8 @@ class _InfoField extends StatelessWidget {
 
 class _CompteCard extends ConsumerWidget {
   final CompteSabotay compte;
-  const _CompteCard({required this.compte});
+  final String? clientNom;
+  const _CompteCard({required this.compte, this.clientNom});
 
   Color _statutColor(ColorScheme colorScheme, StatutCompte statut) => switch (statut) {
         StatutCompte.actif => colorScheme.secondary,
@@ -261,6 +276,26 @@ class _CompteCard extends ConsumerWidget {
                   _SoldeStat(label: 'Jours manqués', value: '${solde.joursManques}'),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => showAddCollecteSheet(context, compte, clientNom: clientNom),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Collecter'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => showRetraitSheet(context, compte, clientNom: clientNom),
+                    icon: const Icon(Icons.remove_circle_outline, size: 18),
+                    label: const Text('Retirer'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

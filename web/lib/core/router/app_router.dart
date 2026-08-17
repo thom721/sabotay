@@ -249,7 +249,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/manager', builder: (context, state) => const ManagerDashboardScreen()),
-      GoRoute(path: '/agent', builder: (context, state) => const ClientListScreen()),
+      // ShellRoute (sidebar persistante, comme le sous-arbre /admin) plutôt
+      // qu'un unique GoRoute — nécessaire dès qu'il y a plus d'une page
+      // (liste + détail client, ce dernier ajouté pour donner à l'Agent de
+      // quoi collecter comme sur mobile, jusqu'ici seulement un TODO).
+      ShellRoute(
+        builder: (context, state, child) => AdminShell(navItems: agentNavItems, child: child),
+        routes: [
+          GoRoute(path: '/agent', builder: (context, state) => const ClientListScreen()),
+          GoRoute(
+            path: '/agent/clients/:clientId',
+            builder: (context, state) =>
+                ClientDetailScreen(clientId: state.pathParameters['clientId']!),
+          ),
+        ],
+      ),
       GoRoute(
         path: '/superadmin/login',
         builder: (context, state) => const SuperAdminLoginScreen(),

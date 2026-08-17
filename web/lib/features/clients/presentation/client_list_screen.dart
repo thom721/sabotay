@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
@@ -19,10 +20,9 @@ class ClientListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final clientsAsync = ref.watch(clientListControllerProvider);
 
-    return DashboardShell(
+    return DashboardContent(
       title: 'Mes clients',
-      currentRoute: '/agent',
-      navItems: agentNavItems,
+      backgroundColor: const Color(0xFFF0F2F5),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -87,12 +87,7 @@ class _ClientTile extends StatelessWidget {
       trailing: client.statut == StatutClient.inactif
           ? const Chip(label: Text('Inactif'))
           : const Icon(Icons.chevron_right),
-      onTap: () {
-        // TODO: écran de détail du client + comptes Sabotay / collecte.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Détail de ${client.nomComplet} — à venir')),
-        );
-      },
+      onTap: () => context.push('/agent/clients/${client.id}'),
     );
   }
 }

@@ -14,7 +14,12 @@ final apiClientProvider = Provider<Dio>((ref) {
     BaseOptions(
       baseUrl: Env.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      // 20s (pas 10) — aligné sur PRAGMA busy_timeout=20000 du serveur local
+      // (core/db.py) : sous contention SQLite (sync périodique en poste
+      // bureau), le serveur peut légitimement mettre jusqu'à 20s à
+      // répondre ; un timeout client plus court affichait une erreur alors
+      // que la requête aboutissait quand même juste après côté serveur.
+      receiveTimeout: const Duration(seconds: 20),
     ),
   );
 
@@ -60,7 +65,12 @@ final superAdminApiClientProvider = Provider<Dio>((ref) {
     BaseOptions(
       baseUrl: Env.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      // 20s (pas 10) — aligné sur PRAGMA busy_timeout=20000 du serveur local
+      // (core/db.py) : sous contention SQLite (sync périodique en poste
+      // bureau), le serveur peut légitimement mettre jusqu'à 20s à
+      // répondre ; un timeout client plus court affichait une erreur alors
+      // que la requête aboutissait quand même juste après côté serveur.
+      receiveTimeout: const Duration(seconds: 20),
     ),
   );
 
