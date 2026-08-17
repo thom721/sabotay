@@ -270,6 +270,21 @@ jobs:
           "$signtool" sign /fd SHA256 /sha1 $thumbprint /tr http://timestamp.digicert.com /td SHA256 %1
           "@ | Set-Content -Path "$env:RUNNER_TEMP\sign.cmd" -Encoding UTF8NoBOM
 
+      - name: Télécharger NSSM (enveloppe le backend en service Windows)
+        shell: pwsh
+        run: |
+          # sabotaypro-server.exe est une appli console classique (uvicorn.run()
+          # bloquant), pas un vrai service Windows (aucun appel à
+          # StartServiceCtrlDispatcher) — "sc.exe create" pointant directement
+          # dessus échoue toujours au démarrage (le SCM le tue après le délai
+          # d'attente, faute de réponse). NSSM comble cet écart — même solution
+          # que pos_api (voir pos-server.iss / setup-windows.ps1).
+          $nssmZip = "$env:RUNNER_TEMP\nssm.zip"
+          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $nssmZip -UseBasicParsing
+          Expand-Archive -Path $nssmZip -DestinationPath "$env:RUNNER_TEMP\nssm_extract" -Force
+          New-Item -ItemType Directory -Path "certificat\nssm" -Force | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\nssm_extract\nssm-2.24\win64\nssm.exe" "certificat\nssm\nssm.exe" -Force
+
       - name: Compiler l'installeur Inno Setup (signé)
         shell: pwsh
         run: |

@@ -86,6 +86,12 @@ Source: "frontend-windows\*"; DestDir: "{app}"; \
 Source: "setup-info\sabotaypro-codesign.cer"; DestDir: "{tmp}"; \
   Flags: ignoreversion deleteafterinstall
 
+; NSSM (Non-Sucking Service Manager) — enveloppe l'exe backend (simple appli
+; console, pas d'implémentation du protocole SCM) en un vrai service Windows.
+; Téléchargé par le CI (voir build.yml) avant compilation, même binaire que
+; pos_api utilise déjà en production (pos-server.iss / setup-windows.ps1).
+Source: "nssm\nssm.exe"; DestDir: "{app}\nssm"; Flags: ignoreversion
+
 ; ── Registre Windows ──────────────────────────────────────────────────────────
 [Registry]
 Root: HKLM; Subkey: "SOFTWARE\SabotayPro"; \
@@ -126,20 +132,35 @@ Filename: "certutil.exe"; \
   Flags: runhidden waituntilterminated; \
   StatusMsg: "Installation du certificat de signature..."
 
-; Enregistre le backend comme service Windows (LocalSystem, démarrage auto)
-; — même mécanisme que backend/service_wrapper.py::_windows_install(), sans
-; passer par un interpréteur Python à l'exécution (l'utilisateur final n'a
-; pas Python installé).
-Filename: "sc.exe"; \
-  Parameters: "create ""{#MyServiceName}"" binPath= ""{app}\server\{#MyServiceExeName}"" start= auto DisplayName= ""SabotayPro Server"""; \
+; Enregistre le backend comme service Windows via NSSM. "sc.exe create"
+; pointant directement sur l'exe ne fonctionne PAS ici : sabotaypro-server.exe
+; est une appli console classique (uvicorn.run() bloquant), pas un vrai
+; service Windows — le SCM attend qu'il réponde au protocole de contrôle de
+; service (StartServiceCtrlDispatcher), ce qu'il ne fait jamais, et le tue
+; après le délai d'attente (erreur 1053). NSSM s'enregistre lui-même comme le
+; "vrai" service et relaie vers notre exe — même solution que pos_api.
+Filename: "{app}\nssm\nssm.exe"; \
+  Parameters: "install ""{#MyServiceName}"" ""{app}\server\{#MyServiceExeName}"""; \
   Flags: runhidden waituntilterminated; \
   StatusMsg: "Enregistrement du service SabotayPro..."
 
-Filename: "sc.exe"; \
-  Parameters: "description ""{#MyServiceName}"" ""Serveur API local pour SabotayPro"""; \
+Filename: "{app}\nssm\nssm.exe"; \
+  Parameters: "set ""{#MyServiceName}"" AppDirectory ""{app}\server"""; \
   Flags: runhidden waituntilterminated
 
-Filename: "sc.exe"; \
+Filename: "{app}\nssm\nssm.exe"; \
+  Parameters: "set ""{#MyServiceName}"" DisplayName ""SabotayPro Server"""; \
+  Flags: runhidden waituntilterminated
+
+Filename: "{app}\nssm\nssm.exe"; \
+  Parameters: "set ""{#MyServiceName}"" Description ""Serveur API local pour SabotayPro"""; \
+  Flags: runhidden waituntilterminated
+
+Filename: "{app}\nssm\nssm.exe"; \
+  Parameters: "set ""{#MyServiceName}"" Start SERVICE_AUTO_START"; \
+  Flags: runhidden waituntilterminated
+
+Filename: "{app}\nssm\nssm.exe"; \
   Parameters: "start ""{#MyServiceName}"""; \
   Flags: runhidden waituntilterminated; \
   StatusMsg: "Démarrage du service SabotayPro..."
@@ -150,25 +171,34 @@ Filename: "{app}\{#MyAppExeName}"; \
   Flags: nowait postinstall skipifsilent
 
 ; ── Commandes à la désinstallation ────────────────────────────────────────────
+; nssm remove (pas sc delete) — nettoie aussi les paramètres qu'il a stockés
+; lui-même sous la clé de service (AppDirectory, etc.), même pattern que
+; pos_api à la désinstallation (voir pos-server.iss).
 [UninstallRun]
-Filename: "sc.exe"; Parameters: "stop ""{#MyServiceName}"""; \
+Filename: "{app}\nssm\nssm.exe"; Parameters: "stop ""{#MyServiceName}"""; \
   Flags: runhidden waituntilterminated
-Filename: "sc.exe"; Parameters: "delete ""{#MyServiceName}"""; \
+Filename: "{app}\nssm\nssm.exe"; Parameters: "remove ""{#MyServiceName}"" confirm"; \
   Flags: runhidden waituntilterminated
 
 ; ── Code Pascal ────────────────────────────────────────────────────────────────
 [Code]
-// Arrête le service avant la copie des fichiers — évite un exe verrouillé
-// en cas de réinstallation/mise à jour (même raisonnement que
+// Arrête ET désinscrit le service avant la copie des fichiers — évite un exe
+// verrouillé en cas de réinstallation/mise à jour (même raisonnement que
 // PrepareToInstall dans pos-server.iss, simplifié : un seul service ici,
 // pas besoin de la confirmation utilisateur (MsgBox) que fait pos_api pour
-// son trio nginx+API+MySQL).
+// son trio nginx+API+MySQL). "sc.exe delete" (pas nssm.exe) volontairement :
+// fonctionne quelle que soit la façon dont le service a été enregistré
+// (anciennes versions ≤ v0.4.0 via "sc create" brut, ou nssm.exe désormais)
+// — sans ça, le "nssm install" du [Run] échouerait sur un nom déjà pris lors
+// d'une mise à jour depuis une version antérieure à ce correctif.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
 begin
   Result := '';
   Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE,
+       ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\sc.exe'), 'delete "{#MyServiceName}"', '', SW_HIDE,
        ewWaitUntilTerminated, ResultCode);
 end;
 
