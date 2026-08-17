@@ -382,3 +382,84 @@ Décidé avec l'utilisateur : "Rapports" (déjà livré, session précédente) r
 - Backend : `GET /comptes` vérifié via instance uvicorn temporaire + curl réel — solde identique à `GET /comptes/{id}/solde` sur le même compte (confirme la non-régression du refactor `get_solde`/`get_soldes_bulk`).
 - Mobile : `flutter analyze` 0 erreur, `flutter build apk --debug` propre après chaque étape, installé sur l'appareil physique déjà utilisé cette session.
 - **Non vérifié par moi** : le scénario réseau réellement coupé (warm-up puis Wi-Fi/données mobiles désactivées, navigation clients/comptes/collecte/retrait hors-ligne, resynchronisation au retour du réseau) nécessite une interaction physique avec le téléphone que je ne peux pas simuler moi-même — à tester par l'utilisateur.
+
+---
+
+## Epic 22 — Diagnostic et fiabilité du poste bureau ✅ Terminé
+
+**Objectif** : le poste bureau installé chez un client passait directement à l'écran de connexion sans jamais demander le code d'installation, sans aucun moyen de savoir pourquoi. Trois bugs réels trouvés en creusant, à partir des seuls journaux ajoutés pendant cette même investigation.
+
+### Journal serveur persistant
+- `backend/server_main.py::_build_log_config()` : journal rotatif (`sabotaypro-server.log`, 2 Mo × 3, même dossier que le crash log existant) — jusqu'ici `uvicorn.run(..., log_level="info")` n'écrivait que sur stdout, invisible pour un service Windows sans console. Capture les logs `uvicorn.error` (démarrage/erreurs) et `uvicorn.access` (requêtes reçues), plus deux lignes explicites côté app ("Démarrage…", "Configuration chargée — écoute prévue sur host:port") pour distinguer "le serveur n'a jamais démarré" de "démarré mais aucune requête ne l'atteint" (pare-feu/port) de "requêtes reçues mais en échec".
+- **Piège découvert en testant réellement** (lancement du binaire + `curl`) : passer le même `log_config` à `uvicorn.run()` après l'avoir déjà appliqué manuellement (`logging.config.dictConfig`) fait qu'uvicorn le réapplique une 2e fois — chaque ligne écrite en double. Corrigé (`log_config=None` sur `uvicorn.run()`, uvicorn ne doit pas reconfigurer le logging déjà en place) et revérifié : plus de doublon.
+
+### Service Windows qui ne démarrait jamais
+- Root cause trouvée à partir du journal ci-dessus (le client a partagé son contenu réel) : `sabotaypro-server.exe` est une appli console classique (`uvicorn.run()` bloquant), sans implémentation du protocole de contrôle de service Windows (`StartServiceCtrlDispatcher`) — `sc.exe create` pointant dessus échoue systématiquement au démarrage (le SCM tue le processus après le délai d'attente, erreur 1053), quel que soit l'état de `.env`/`SECRET_KEY`.
+- Comparé à pos_api (légitime ici — décision d'infrastructure Windows, pas le module "Sabotage" exclu par ailleurs) : il enveloppe son propre exe avec **NSSM**, déjà éprouvé en production. Adopté à l'identique : `.github/workflows/build.yml` télécharge `nssm.exe` avant de compiler l'installateur, `certificat/sabotaypro-desktop.iss` l'embarque et remplace `sc.exe create/start` par `nssm install/set/start` — avec nettoyage de l'ancienne inscription (`sc.exe delete`) dans `PrepareToInstall` pour que la mise à jour depuis une version antérieure ne bute pas sur un nom de service déjà pris.
+
+### Blocage SQLite en mode local
+- Symptôme rapporté par l'utilisateur : "impossible de créer le client" affiché, mais le client créé quand même — pour Agent et Admin, uniquement en local. Cause : `services/local_sync_client.py` (boucle de sync périodique) écrit dans le même fichier SQLite que les requêtes normales, sans mode WAL ni `busy_timeout` explicite (défaut sqlite3 : 5 s) — une requête utilisateur peut attendre derrière un verrou de sync assez longtemps pour dépasser le timeout Dio (10 s) côté app, qui affiche une erreur alors que la requête serveur, elle, continue et finit par réussir. N'existe pas côté cloud (Postgres, MVCC, pas de tâche de fond équivalente).
+- `backend/app/core/db.py` : `PRAGMA journal_mode=WAL` + `PRAGMA busy_timeout=20000` sur chaque connexion SQLite locale (event `connect` SQLAlchemy). `web/lib/core/network/api_client.dart` : timeout Dio aligné à 20 s en filet de sécurité.
+- **Testé** : pragmas vérifiés directement (`PRAGMA journal_mode`/`PRAGMA busy_timeout` retournent bien `wal`/`20000`), `app.main` s'importe sans erreur en `LOCAL_MODE=true`.
+
+---
+
+## Epic 23 — Logo de marque sur les écrans de connexion ✅ Terminé
+
+**Objectif** : remplacer le texte "SabotayPro" par le logo dans un cercle, comme sur l'écran de connexion de pos_api, sur mobile, le site et l'app bureau (site et bureau partagent le même code `web/`).
+
+- Nouveau widget `AppLogo` (`mobile/lib/core/widgets/app_logo.dart`, `web/lib/core/widgets/app_logo.dart`) : cercle blanc bordé, réutilise l'icône déjà existante (`assets/icon/app_icon.png`) plutôt qu'un nouvel asset. `app_icon.png` est un pavé texte opaque (contrainte des icônes de lanceur, pas de détourage comme le pictogramme de pos_api) — `BoxFit.cover` + `clipBehavior` recadrent donc le cercle dans le pavé plutôt que d'y insérer le logo avec une marge comme le fait pos_api.
+- Câblé sur `mobile/lib/features/auth/presentation/login_screen.dart` et `web/lib/features/auth/presentation/login_screen.dart` (ce dernier sert à la fois le site et le binaire bureau compilé).
+- **Vérifié visuellement** : build web réel servi en local, capture d'écran via Chrome headless — le texte "Sabotay"/"Pro" tient dans le cercle sans coupure gênante.
+- **Non couvert, pas demandé** : écran de connexion super-admin (texte différent, "SabotayPro — Administration plateforme") et en-tête de la page d'accueil marketing.
+
+---
+
+## Epic 24 — Parité bureau/web, impression multi-terminal des reçus, cycle de vie du code d'installation ✅ Terminé
+
+**Objectif** : trois demandes explicites de l'utilisateur.
+
+### Dimensions des cartes bureau vs web
+- Root cause : la fenêtre bureau s'ouvrait par défaut à 1280×720 (Windows, valeur par défaut Flutter) / 800×600 (macOS) — une fois la barre latérale (232 px) et le padding (48 px) déduits, la zone de contenu tombait sous le seuil de 1100 px qui déclenche la disposition à 4 colonnes du tableau de bord (`AdminDashboardScreen`), forçant systématiquement 2 colonnes au premier lancement, contrairement à un navigateur maximisé.
+- `web/windows/runner/main.cpp` et `web/macos/Runner/Base.lproj/MainMenu.xib` : fenêtre par défaut agrandie à 1480×860 sur les deux plateformes, avec marge suffisante pour garantir la disposition 4 colonnes.
+- Cartes du rapport (`rapport_screen.dart`) alignées sur le style et les seuils responsives du tableau de bord (`PosStyleStatCard`, seuils 1100/480) — utilisaient jusqu'ici un widget différent (`StatCard`) avec d'autres seuils (720/420).
+- **Non vérifiable par moi** : le rendu réel dans le binaire bureau compilé, qui nécessite une recompilation (nouveau tag) — confirmé uniquement par calcul de largeur et par build web réussi.
+
+### Impression multi-terminal des reçus
+- `Printing.layoutPdf()` (déjà utilisé côté portail Client) ouvre le dialogue d'impression natif du poste, qui liste tous les terminaux configurés (thermique USB/réseau, imprimante classique, PDF) — équivalent desktop du choix multi-appareils du mobile (Sunmi/Bluetooth/PDF, sans objet sur web/bureau).
+- Câblé sur le registre de transactions (`transaction_registre_screen.dart`) et le rapport (`rapport_screen.dart`), en plus du portail Client. A nécessité d'enrichir `GET /transactions/rapport` côté backend (`crud/transaction.py::list_for_periode`, même jointure Client/CompteSabotay que `list_registre`) pour inclure le nom du client et le numéro de compte par ligne, absents jusqu'ici de `RapportRead.transactions` — `imprimerRecu()` simplifié pour prendre `compteNumero: String` plutôt qu'un `CompteSabotay` complet (seul champ réellement utilisé).
+- **Testé de bout en bout** : `GET /transactions/rapport` vérifié via curl réel (client_nom/compte_numero bien présents), `flutter build web` propre.
+
+### Code d'installation à usage unique
+- Bug trouvé : `GET /entreprises/code-installation` régénérait silencieusement un **nouveau** code valide à chaque consultation dès qu'aucun code inutilisé n'existait — y compris après une installation déjà réussie, donc la page Admin gardait perpétuellement un code actif copiable, contrairement au modèle "un seul poste local par entreprise" (Epic 2).
+- Corrigé : un code déjà consommé (`utilise=True`) fait désormais retourner `code=null` (le frontend affichait déjà correctement "Installation terminée" dans ce cas, jamais atteint jusqu'ici) ; la génération automatique n'a lieu que si aucun code n'a jamais existé pour cette entreprise. La régénération explicite (bouton "Régénérer", `POST /entreprises/code-installation`) reste inchangée. Le rejet d'un code déjà utilisé (`POST /sync/redeem-code`, 409) était déjà correct.
+- **Testé de bout en bout via curl réel** : entreprise avec 3 codes déjà utilisés → `GET` retourne bien `code: null` sans créer de 4e ligne en base (vérifié par `SELECT COUNT(*)`).
+
+---
+
+## Epic 25 — SQLite local, Agent bureau (collecte/retrait), réinitialisation d'installation superadmin ✅ Terminé
+
+**Objectif** : voir Epic 22 pour le correctif SQLite (documenté là plutôt que dupliqué ici). Deux autres demandes explicites de l'utilisateur.
+
+### Agent bureau : collecte et retrait, comme sur mobile
+- Avant cette session, un Agent connecté sur le bureau/site (`/agent`, `ClientListScreen`) n'avait strictement rien lui permettant de collecter — le clic sur un client affichait un `TODO` littéral ("écran de détail du client + comptes Sabotay / collecte — à venir").
+- Nouvelle route `/agent/clients/:clientId` (`ShellRoute` + `AdminShell`, remplace l'ancien `GoRoute` autonome de `/agent` pour bénéficier d'une sidebar persistante comme `/admin`) vers `ClientDetailScreen` (réutilisé tel quel, déjà existant côté Admin) — bouton "Nouveau compte" masqué pour l'Agent (`POST /comptes` réservé Admin/Manager côté backend), boutons "Collecter"/"Retirer" ajoutés à chaque `_CompteCard` (visibles pour tous les rôles autorisés à collecter côté backend).
+- `web/lib/features/transactions/data/transaction_repository.dart` : `createCollecte`/`createRetrait` ajoutés (mêmes routes/contrat que le mobile, `POST /transactions`/`POST /transactions/retrait`) — pas de file hors-ligne ici, le poste bureau parle toujours à son propre serveur local.
+- `add_collecte_sheet.dart`/`retrait_sheet.dart` (nouveaux, web) : équivalents desktop des feuilles mobiles, en un seul dialogue (case à cocher de confirmation) plutôt que les 3 étapes de confirmation successives du mobile, pensées pour réduire le risque de faux clic sur petit écran tactile en déplacement — moins pertinent sur un poste fixe.
+- **Testé de bout en bout via curl réel** : `POST /transactions` et `POST /transactions/retrait` avec exactement le payload envoyé par le nouveau code web, y compris le rejet 400 d'un retrait supérieur au solde disponible.
+
+### Réinitialisation d'installation côté superadmin
+- Bug trouvé : le bouton "Réinitialiser l'installation" (déjà existant côté superadmin) promettait dans son dialogue de confirmation "un nouveau code d'installation sera généré", mais `reinitialiser_installation` ne faisait que repasser `Entreprise.est_installe` à `False`, sans jamais toucher `CodeInstallation` — cassé silencieusement par le correctif du cycle de vie du code (Epic 24) : après une réinitialisation, l'Admin restait bloqué sur "Installation terminée" sans aucun moyen d'obtenir un code utilisable.
+- Corrigé : `reinitialiser_installation` invalide les codes inutilisés existants et en génère un nouveau (même logique que `regenerer_code_installation`), en plus de repasser `est_installe` à `False`.
+- **Testé de bout en bout via curl réel**, cycle complet : code utilisé → `GET` retourne "installation terminée" → réinitialisation superadmin → nouveau code immédiatement utilisable.
+
+---
+
+## Epic 26 — Prix de renouvellement d'abonnement distinct du prix courant ✅ Terminé
+
+**Objectif** : demande explicite — le super-admin doit pouvoir annoncer à l'avance un changement de prix pour le **prochain** renouvellement, visible par le client sur sa page Abonnement avant d'être facturé, et c'est ce prix (pas le prix courant) qui doit être réellement appliqué au renouvellement.
+
+- `PlatformConfig.abonnement_renouvellement_htg` (migration `0030`, nullable) : `None` = pas de changement annoncé, le renouvellement se fait au prix courant (`abonnement_montant_htg`). Nouveau champ superadmin "Prix de renouvellement (HTG)" (Paramètres → Abonnement), vide = même comportement.
+- `backend/app/api/v1/endpoints/abonnement.py::_montant_renouvellement()` : seule source de vérité pour le prix effectivement facturé — remplace `abonnement_montant_htg` dans les trois chemins de paiement (`payer_abonnement`, `verifier_abonnement`, `declarer_paiement_especes`). Le montant fixé à la déclaration d'un paiement espèces fait foi à la confirmation superadmin (`confirmer_paiement` réutilise `paiement.montant`, ne relit jamais `platform_config`) — important que `declarer_paiement_especes` utilise déjà le bon prix.
+- `AbonnementRead` enrichi d'un champ calculé `montant_prochain_renouvellement` (pas stocké sur `Abonnement`, résolu à la lecture via `platform_config` — `_to_abonnement_read()`), affiché côté client juste devant la date de renouvellement.
+- **Testé de bout en bout via curl réel** : prix de renouvellement configuré à 1200 (courant 1000) → `GET /abonnement` renvoie bien `montant_prochain_renouvellement: 1200` → `POST /abonnement/declarer-especes` facture bien 1200, pas 1000.
