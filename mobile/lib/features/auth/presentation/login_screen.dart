@@ -60,8 +60,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.listen(authControllerProvider, (previous, next) {
       if (!_modeClient && next.hasError && !next.isLoading) {
+        final erreur = next.error;
+        final message = erreur is SyncEnAttenteException
+            ? erreur.message
+            : 'Téléphone/email ou mot de passe incorrect';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Téléphone/email ou mot de passe incorrect')),
+          SnackBar(content: Text(message)),
         );
       }
     });

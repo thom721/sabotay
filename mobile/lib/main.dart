@@ -22,6 +22,13 @@ class SabotayProApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        // pos_api (dont on reprend la palette, voir app_colors.dart) n'a
+        // qu'un seul thème, jamais de mode sombre — sans forcer themeMode
+        // ici, l'app suivait le réglage système et affichait AppTheme.dark
+        // (couleurs adaptées, donc différentes de pos_api) dès que le
+        // téléphone est en mode sombre, ce qui semblait être la cause de la
+        // divergence de couleurs observée.
+        themeMode: ThemeMode.light,
         routerConfig: router,
       ),
     );

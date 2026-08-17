@@ -161,7 +161,7 @@ Filename: "sc.exe"; Parameters: "delete ""{#MyServiceName}"""; \
 // Arrête le service avant la copie des fichiers — évite un exe verrouillé
 // en cas de réinstallation/mise à jour (même raisonnement que
 // PrepareToInstall dans pos-server.iss, simplifié : un seul service ici,
-; pas besoin de la confirmation utilisateur (MsgBox) que fait pos_api pour
+// pas besoin de la confirmation utilisateur (MsgBox) que fait pos_api pour
 // son trio nginx+API+MySQL).
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
@@ -172,15 +172,15 @@ begin
        ewWaitUntilTerminated, ResultCode);
 end;
 
-; ── Fichier de configuration ──────────────────────────────────────────────────
-; Le backend lit .env depuis son propre dossier au démarrage (chemin relatif,
-; voir server_main.py::_fix_workdir()) — généré ici avec une SECRET_KEY
-; propre à cette installation. LOCAL_MODE=true, SQLite (pas de MySQL/Postgres
-; côté poste local, décision explicite de ce projet — voir EPICS.md Epic 2).
-; CLOUD_SYNC_URL/CLOUD_SYNC_TOKEN restent vides : la liaison au cloud via le
-; code d'installation (Admin → Entreprise → Code d'installation,
-; POST /sync/redeem-code) se fait au premier lancement de l'application, pas
-; ici — voir Epic 5f (pas encore implémenté) dans EPICS.md.
+// ── Fichier de configuration ──────────────────────────────────────────────────
+// Le backend lit .env depuis son propre dossier au démarrage (chemin relatif,
+// voir server_main.py::_fix_workdir()) — généré ici avec une SECRET_KEY
+// propre à cette installation. LOCAL_MODE=true, SQLite (pas de MySQL/Postgres
+// côté poste local, décision explicite de ce projet — voir EPICS.md Epic 2).
+// CLOUD_SYNC_URL/CLOUD_SYNC_TOKEN restent vides : la liaison au cloud via le
+// code d'installation (Admin → Entreprise → Code d'installation,
+// POST /sync/redeem-code) se fait au premier lancement de l'application, pas
+// ici — voir Epic 5f (implémenté depuis, voir EPICS.md).
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   EnvPath, SecretKey: String;
