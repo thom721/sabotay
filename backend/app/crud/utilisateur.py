@@ -6,7 +6,7 @@ import logging
 from app.core.notifications import send_email
 from app.core.security import generate_temp_password, hash_password
 from app.models.utilisateur import RoleUtilisateur, StatutUtilisateur, Utilisateur
-from app.schemas.utilisateur import UtilisateurCreate
+from app.schemas.utilisateur import UtilisateurCreate, UtilisateurRead
 
 logger = logging.getLogger("sabotaypro.utilisateur")
 
@@ -23,7 +23,7 @@ async def get_by_telephone_ou_email(
 
 async def create(
     session: AsyncSession, *, entreprise_id: str, data: UtilisateurCreate
-) -> Utilisateur:
+) -> UtilisateurRead:
     temp_password = generate_temp_password()
     utilisateur = Utilisateur(
         entreprise_id=entreprise_id,
@@ -56,14 +56,16 @@ async def create(
         logger.exception("Échec d'envoi de l'email de bienvenue pour l'employé %s", utilisateur.id)
         email_envoye = False
 
-    # Champs hors table, ajoutés dynamiquement pour que l'appelant (endpoint,
-    # via UtilisateurRead) puisse afficher le mot de passe à l'écran quand
-    # l'email n'a pas pu être remis — sinon il serait perdu (jamais stocké en
-    # clair).
-    utilisateur.email_envoye = email_envoye
-    utilisateur.mot_de_passe_temporaire = None if email_envoye else temp_password
-
-    return utilisateur
+    # email_envoye/mot_de_passe_temporaire n'existent pas sur le modèle table
+    # Utilisateur (SQLModel refuse les attributs hors schéma) : on les porte
+    # sur l'UtilisateurRead retourné, pour que l'appelant affiche le mot de
+    # passe à l'écran quand l'email n'a pas pu être remis — sinon il serait
+    # perdu (jamais stocké en clair).
+    return UtilisateurRead(
+        **utilisateur.model_dump(),
+        email_envoye=email_envoye,
+        mot_de_passe_temporaire=None if email_envoye else temp_password,
+    )
 
 
 async def list_for_tenant(session: AsyncSession, *, entreprise_id: str) -> list[Utilisateur]:

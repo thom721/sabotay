@@ -40,7 +40,10 @@ AppUpdatesURL={#MyAppURL}
 ; Windows (LocalSystem) doit pouvoir écrire son .db SQLite sans dépendre des
 ; permissions d'un compte utilisateur particulier.
 DefaultDirName={autopf}\SabotayPro
-DisableDirPage=no
+; "auto" : sautée lors d'une mise à jour tant que le dossier précédent est
+; réutilisé (comportement natif Inno Setup) — sinon affichée (première
+; installation, ou dossier personnalisé).
+DisableDirPage=auto
 DisableProgramGroupPage=yes
 
 ; Droits admin obligatoires (création de service, certutil -addstore Root)
@@ -182,6 +185,28 @@ Filename: "{app}\nssm\nssm.exe"; Parameters: "remove ""{#MyServiceName}"" confir
 
 ; ── Code Pascal ────────────────────────────────────────────────────────────────
 [Code]
+var
+  IsUpgrade: Boolean;
+
+// Détection mise à jour : la clé de registre n'est écrite qu'à l'installation
+// (voir [Registry] ci-dessus) et survit à toutes les mises à jour suivantes
+// (seule la désinstallation complète la retire, Flags: uninsdeletekey) — donc
+// sa présence signifie "ce poste a déjà SabotayPro d'installé".
+function InitializeSetup(): Boolean;
+begin
+  IsUpgrade := RegKeyExists(HKLM, 'SOFTWARE\SabotayPro');
+  Result := True;
+end;
+
+// En mise à jour, saute les pages qui n'ont de sens qu'à la première
+// installation : choix de l'icône bureau (déjà décidé) et l'écran récapitulatif
+// "prêt à installer" — laisse la page d'accueil et la page finale, pour que
+// l'utilisateur voie quand même que quelque chose s'est passé.
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := IsUpgrade and ((PageID = wpSelectTasks) or (PageID = wpReady));
+end;
+
 // Arrête ET désinscrit le service avant la copie des fichiers — évite un exe
 // verrouillé en cas de réinstallation/mise à jour (même raisonnement que
 // PrepareToInstall dans pos-server.iss, simplifié : un seul service ici,
@@ -211,6 +236,12 @@ end;
 // code d'installation (Admin → Entreprise → Code d'installation,
 // POST /sync/redeem-code) se fait au premier lancement de l'application, pas
 // ici — voir Epic 5f (implémenté depuis, voir EPICS.md).
+//
+// Ne s'exécute que si .env n'existe pas encore : ce même CurStepChanged
+// tourne aussi lors d'une mise à jour (pas seulement à l'installation
+// initiale), et écraser sans condition effaçait CLOUD_SYNC_URL/TOKEN (le
+// poste redemandait le code d'installation après chaque mise à jour) et
+// régénérait SECRET_KEY (invalidant les sessions en cours) à chaque fois.
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   EnvPath, SecretKey: String;
@@ -219,15 +250,18 @@ begin
   if CurStep = ssPostInstall then
   begin
     EnvPath := ExpandConstant('{app}\server\.env');
-    SecretKey := GetSHA1OfString(GetDateTimeString('yyyymmddhhnnsszzz', #0, #0) + ExpandConstant('{app}'));
+    if not FileExists(EnvPath) then
+    begin
+      SecretKey := GetSHA1OfString(GetDateTimeString('yyyymmddhhnnsszzz', #0, #0) + ExpandConstant('{app}'));
 
-    SetArrayLength(EnvFile, 5);
-    EnvFile[0] := 'LOCAL_MODE=true';
-    EnvFile[1] := 'LOCAL_DATABASE_PATH=./sabotay_local.db';
-    EnvFile[2] := 'SECRET_KEY=' + SecretKey;
-    EnvFile[3] := 'SERVER_HOST=127.0.0.1';
-    EnvFile[4] := 'SERVER_PORT=9004';
+      SetArrayLength(EnvFile, 5);
+      EnvFile[0] := 'LOCAL_MODE=true';
+      EnvFile[1] := 'LOCAL_DATABASE_PATH=./sabotay_local.db';
+      EnvFile[2] := 'SECRET_KEY=' + SecretKey;
+      EnvFile[3] := 'SERVER_HOST=127.0.0.1';
+      EnvFile[4] := 'SERVER_PORT=9004';
 
-    SaveStringsToFile(EnvPath, EnvFile, False);
+      SaveStringsToFile(EnvPath, EnvFile, False);
+    end;
   end;
 end;

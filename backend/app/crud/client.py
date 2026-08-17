@@ -8,6 +8,7 @@ import logging
 from app.core.notifications import send_email
 from app.core.security import generate_temp_password, hash_password
 from app.models.client import Client
+from app.schemas.client import ClientRead
 
 logger = logging.getLogger("sabotaypro.client")
 
@@ -46,7 +47,7 @@ async def find_duplicate(
     return None
 
 
-async def create(session: AsyncSession, *, entreprise_id: str, data: dict) -> Client:
+async def create(session: AsyncSession, *, entreprise_id: str, data: dict) -> ClientRead:
     client = Client(entreprise_id=entreprise_id, **data)
 
     temp_password: str | None = None
@@ -73,13 +74,16 @@ async def create(session: AsyncSession, *, entreprise_id: str, data: dict) -> Cl
             logger.exception("Échec d'envoi de l'email de bienvenue pour le client %s", client.id)
             email_envoye = False
 
-    # Champs hors table, ajoutés dynamiquement pour que l'appelant (endpoint,
-    # via ClientRead) puisse afficher le mot de passe à l'écran quand l'email
-    # n'a pas pu être remis — sinon il serait perdu (jamais stocké en clair).
-    client.email_envoye = email_envoye
-    client.mot_de_passe_temporaire = None if email_envoye else temp_password
-
-    return client
+    # email_envoye/mot_de_passe_temporaire n'existent pas sur le modèle table
+    # Client (SQLModel refuse les attributs hors schéma) : on les porte sur le
+    # ClientRead retourné, pour que l'appelant affiche le mot de passe à
+    # l'écran quand l'email n'a pas pu être remis — sinon il serait perdu
+    # (jamais stocké en clair).
+    return ClientRead(
+        **client.model_dump(),
+        email_envoye=email_envoye,
+        mot_de_passe_temporaire=None if email_envoye else temp_password,
+    )
 
 
 async def list_for_tenant(
