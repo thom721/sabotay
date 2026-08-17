@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/offline_queue_service.dart';
+import '../../../core/storage/local_db_service.dart';
 import '../domain/collecte_result.dart';
+import '../domain/retrait_result.dart';
 import '../domain/transaction.dart';
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
@@ -24,11 +26,20 @@ class TransactionRepository {
 
   TransactionRepository(this._dio);
 
+  /// Cache-first (Epic 6) — voir `ClientRepository` pour le principe
+  /// général. Historique limité aux transactions déjà synchronisées par
+  /// `OfflineCacheService` (les 10 dernières pages du registre tenant,
+  /// triées par date décroissante — voir `_pagesMaxTransactions`).
   Future<List<Transaction>> listForCompte(String compteId) async {
+    final cached = await LocalDbService.instance.getTransactionsForCompte(compteId);
+    if (cached.isNotEmpty) return cached;
+
     final response = await _dio.get('/comptes/$compteId/transactions');
-    return (response.data as List)
+    final transactions = (response.data as List)
         .map((json) => Transaction.fromJson(json as Map<String, dynamic>))
         .toList();
+    await LocalDbService.instance.upsertTransactions(transactions);
+    return transactions;
   }
 
   Future<Rapport> getRapport({required DateTime dateDebut, required DateTime dateFin}) async {
@@ -76,20 +87,36 @@ class TransactionRepository {
     }
   }
 
-  Future<Transaction> createRetrait({
+  /// Activé hors-ligne depuis l'Epic 6 — jusqu'ici exclu (Epic 1) car le
+  /// solde n'était pas vérifiable sans réseau. Le solde caché (voir
+  /// `CompteRepository.getSolde`) permet désormais une vérification côté
+  /// client (`retrait_sheet.dart`, déjà en place) avant l'envoi ; la
+  /// validation qui fait foi reste côté serveur au moment de la synchro —
+  /// si le solde réel ne suffit plus (ex. deux appareils), l'opération est
+  /// retentée puis abandonnée comme n'importe quelle mise en file, jamais
+  /// silencieusement perdue (voir `OfflineQueueService.dropped`).
+  Future<RetraitResult> createRetrait({
     required String compteId,
     required DateTime date,
     required num montant,
   }) async {
     try {
-      final response = await _dio.post('/transactions/retrait', data: {
-        'compte_id': compteId,
-        'date': _formatDate(date),
-        'montant': montant,
-      });
-      return Transaction.fromJson(response.data as Map<String, dynamic>);
+      final response = await _dio.post(
+        '/transactions/retrait',
+        data: {
+          'compte_id': compteId,
+          'date': _formatDate(date),
+          'montant': montant,
+        },
+        options: Options(extra: const {'skipOfflineQueue': true}),
+      );
+      return RetraitSuccess(Transaction.fromJson(response.data as Map<String, dynamic>));
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) throw MontantRetraitInvalideException();
+      if (OfflineQueueService.isConnectivityError(e)) {
+        await OfflineQueueService.instance.enqueue(e.requestOptions);
+        return RetraitQueued(compteId: compteId, date: date, montant: montant);
+      }
       rethrow;
     }
   }

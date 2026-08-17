@@ -6,8 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+import app.crud.transaction as crud_transaction
+from app.models.client import Client
 from app.models.compte_sabotay import CompteSabotay
-from app.schemas.compte_sabotay import CompteSabotayCreate
+from app.schemas.compte_sabotay import CompteSabotayAvecSolde, CompteSabotayCreate
 
 _MAX_TENTATIVES_NUMERO = 5
 
@@ -92,6 +94,54 @@ async def list_for_client(
     )
     result = await session.execute(statement)
     return list(result.scalars().all())
+
+
+async def list_for_tenant_avec_soldes(
+    session: AsyncSession,
+    *,
+    entreprise_id: str,
+    agent_id: str | None = None,
+    skip: int = 0,
+    limit: int = 200,
+) -> tuple[list[CompteSabotayAvecSolde], int]:
+    """Comptes du tenant avec solde calculé en une seule requête groupée
+    (voir `crud/transaction.py::get_soldes_bulk`) plutôt qu'un aller-retour
+    par compte — pour le cache offline mobile (Epic 6) et tout futur écran
+    listant plusieurs comptes. `agent_id` restreint aux comptes des clients
+    assignés à cet agent (mêmes règles que `crud/client.py::list_for_tenant`)."""
+    base = select(CompteSabotay).where(CompteSabotay.entreprise_id == entreprise_id)
+    if agent_id is not None:
+        base = base.join(Client, Client.id == CompteSabotay.client_id).where(
+            Client.agent_assigne_id == agent_id
+        )
+
+    total = (
+        await session.execute(select(func.count()).select_from(base.subquery()))
+    ).scalar_one()
+
+    statement = base.order_by(CompteSabotay.numero_compte).offset(skip).limit(limit)
+    comptes = list((await session.execute(statement)).scalars().all())
+    if not comptes:
+        return [], total
+
+    soldes = await crud_transaction.get_soldes_bulk(
+        session, compte_ids=[c.id for c in comptes]
+    )
+
+    resultats = []
+    for compte in comptes:
+        montant_collecte, montant_retire, jours_payes = soldes.get(
+            compte.id, (Decimal("0"), Decimal("0"), 0)
+        )
+        resultats.append(
+            CompteSabotayAvecSolde(
+                **compte.model_dump(),
+                **crud_transaction.calculer_champs_solde(
+                    compte, montant_collecte, montant_retire, jours_payes
+                ),
+            )
+        )
+    return resultats, total
 
 
 async def get_for_client(

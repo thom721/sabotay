@@ -52,6 +52,10 @@ dependencies:
   print_bluetooth_thermal: ^1.2.2
   sunmi_printer_plus: ^4.1.1
 
+  # Cache offline (Epic 6) — clients/comptes/transactions/profil entreprise
+  # mis en cache localement pour qu'un agent puisse travailler sans réseau.
+  sqflite: ^2.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

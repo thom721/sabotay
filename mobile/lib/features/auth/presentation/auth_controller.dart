@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,8 @@ import '../../../core/licence/licence_verifier.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/offline_queue_service.dart';
 import '../../../core/network/token_storage.dart';
+import '../../../core/storage/local_db_service.dart';
+import '../../../core/storage/offline_cache_service.dart';
 import '../../clients/presentation/client_list_controller.dart';
 import '../../entreprise/presentation/entreprise_providers.dart';
 import '../data/auth_repository.dart';
@@ -99,7 +103,18 @@ class AuthController extends AsyncNotifier<User?> {
         // `ClientAuthController.switchEntreprise`, jamais répliqué ici.
         ref.invalidate(entrepriseProfilProvider);
         ref.invalidate(clientListControllerProvider);
+        // Cache offline (Epic 6) : mêmes données scoped-entreprise que les
+        // providers ci-dessus, mais persistées sur disque — sans ce vidage,
+        // l'agent B verrait les clients/comptes de l'agent A tant qu'un
+        // cycle de sync complet n'a pas tout remplacé.
+        await LocalDbService.instance.viderTout();
       }
+
+      // Amorce le remplissage du cache offline dès la connexion réussie,
+      // sans bloquer le retour de login() dessus (l'agent peut déjà
+      // naviguer pendant que ça se termine en tâche de fond) — best-effort,
+      // OfflineDrainScope reprendra périodiquement de toute façon.
+      unawaited(OfflineCacheService.instance.syncAll(ref.read(apiClientProvider)));
 
       return nouvelUtilisateur;
     });

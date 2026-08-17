@@ -6,10 +6,11 @@ import app.crud.client as crud_client
 import app.crud.compte_sabotay as crud_compte
 import app.crud.transaction as crud_transaction
 from app.core.db import get_session
-from app.core.deps import CurrentClient, TenantId, require_roles
+from app.core.deps import CurrentClient, CurrentUser, TenantId, require_roles
 from app.models.utilisateur import RoleUtilisateur
 from app.schemas.compte_sabotay import (
     CompteSabotayCreate,
+    CompteSabotayPage,
     CompteSabotayRead,
     CompteSabotaySolde,
 )
@@ -18,6 +19,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(tags=["comptes-sabotay"])
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+
+@router.get(
+    "/comptes",
+    response_model=CompteSabotayPage,
+    dependencies=[
+        Depends(
+            require_roles(
+                RoleUtilisateur.ADMIN, RoleUtilisateur.MANAGER, RoleUtilisateur.AGENT
+            )
+        )
+    ],
+)
+async def list_comptes(
+    session: SessionDep,
+    entreprise_id: TenantId,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 200,
+) -> CompteSabotayPage:
+    """Registre tenant-wide avec solde inline — pour le cache offline mobile
+    (Epic 6) : un seul appel plutôt qu'un `/comptes/{id}/solde` par compte
+    lors du peuplement du cache. Un Agent ne voit que les comptes des
+    clients qui lui sont assignés, comme `GET /clients`."""
+    agent_id = current_user.id if current_user.role == RoleUtilisateur.AGENT else None
+    comptes, total = await crud_compte.list_for_tenant_avec_soldes(
+        session,
+        entreprise_id=entreprise_id,
+        agent_id=agent_id,
+        skip=skip,
+        limit=min(limit, 200),
+    )
+    return CompteSabotayPage(items=comptes, total=total)
 
 
 @router.post(

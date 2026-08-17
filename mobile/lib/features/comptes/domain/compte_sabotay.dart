@@ -93,3 +93,19 @@ class CompteSolde {
         joursManques: json['jours_manques'] as int,
       );
 }
+
+/// `CompteSabotay` + `CompteSolde` combinés — reflète `GET /comptes`
+/// (registre tenant-wide avec solde calculé en masse côté serveur, Epic 6)
+/// utilisé pour peupler le cache offline en un seul appel au lieu d'un
+/// `/comptes/{id}/solde` par compte.
+class CompteSabotayAvecSolde {
+  final CompteSabotay compte;
+  final CompteSolde solde;
+
+  const CompteSabotayAvecSolde({required this.compte, required this.solde});
+
+  factory CompteSabotayAvecSolde.fromJson(Map<String, dynamic> json) => CompteSabotayAvecSolde(
+        compte: CompteSabotay.fromJson(json),
+        solde: CompteSolde.fromJson({...json, 'compte_id': json['id']}),
+      );
+}

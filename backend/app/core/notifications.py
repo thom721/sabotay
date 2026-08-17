@@ -16,7 +16,19 @@ async def send_sms(to: str, message: str) -> None:
         logger.info("[SMS fallback] to=%s: %s", to, message)
         return
 
-    from twilio.rest import Client
+    try:
+        from twilio.rest import Client
+    except ModuleNotFoundError:
+        # Le binaire bureau compilé (Nuitka, Epic 5) exclut délibérément
+        # twilio (--nofollow-import-to=twilio, server_main.py) : le SDK
+        # (630 fichiers, ~26 Mo) ajoutait 20-30+ min au temps de build pour
+        # un canal déjà secondaire depuis l'Epic 16 (SMS jamais configuré en
+        # prod, "mot de passe oublié" par email). Repli gracieux plutôt
+        # qu'un crash si jamais configuré malgré tout sur un poste bureau.
+        logger.warning(
+            "[SMS] Twilio non disponible sur ce binaire (poste bureau) — to=%s: %s", to, message
+        )
+        return
 
     def _send() -> None:
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)

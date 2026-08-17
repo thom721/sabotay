@@ -35,3 +35,23 @@ class CompteSabotaySolde(SQLModel):
     solde_disponible: Decimal
     dette: Decimal
     jours_manques: int
+
+
+class CompteSabotayAvecSolde(CompteSabotayRead):
+    """`CompteSabotayRead` enrichi du solde — utilisé par `GET /comptes`
+    (registre tenant-wide pour le cache offline mobile, Epic 6) afin
+    d'éviter un appel `/comptes/{id}/solde` par compte lors d'un
+    rafraîchissement de cache : le solde est calculé en une seule requête
+    groupée plutôt qu'une par compte."""
+
+    montant_collecte: Decimal
+    montant_retire: Decimal
+    solde_restant: Decimal
+    solde_disponible: Decimal
+    dette: Decimal
+    jours_manques: int
+
+
+class CompteSabotayPage(SQLModel):
+    items: list[CompteSabotayAvecSolde]
+    total: int

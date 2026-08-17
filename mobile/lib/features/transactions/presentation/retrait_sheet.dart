@@ -6,6 +6,7 @@ import '../../comptes/domain/compte_sabotay.dart';
 import '../../comptes/presentation/compte_providers.dart';
 import '../../entreprise/presentation/entreprise_providers.dart';
 import '../data/transaction_repository.dart';
+import '../domain/retrait_result.dart';
 import '../domain/transaction.dart';
 import 'recu_pdf.dart';
 
@@ -45,6 +46,7 @@ class _RetraitSheetState extends ConsumerState<_RetraitSheet> {
   DateTime _date = DateTime.now();
   bool _isSaving = false;
   Transaction? _transactionEnregistree;
+  RetraitQueued? _retraitEnAttente;
 
   @override
   void dispose() {
@@ -67,16 +69,26 @@ class _RetraitSheetState extends ConsumerState<_RetraitSheet> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      final transaction = await ref.read(transactionRepositoryProvider).createRetrait(
+      final result = await ref.read(transactionRepositoryProvider).createRetrait(
             compteId: widget.compte.id,
             date: _date,
             montant: _montantDemande,
           );
-      ref.invalidate(compteSoldeProvider(widget.compte.id));
+      if (result is RetraitSuccess) {
+        ref.invalidate(compteSoldeProvider(widget.compte.id));
+      }
       if (mounted) {
+        // Feuille gardée ouverte pour proposer l'impression du reçu (ou
+        // afficher l'état "en attente") — même raisonnement que
+        // add_collecte_sheet.dart.
         setState(() {
           _isSaving = false;
-          _transactionEnregistree = transaction;
+          switch (result) {
+            case RetraitSuccess(:final transaction):
+              _transactionEnregistree = transaction;
+            case RetraitQueued():
+              _retraitEnAttente = result;
+          }
         });
       }
     } on MontantRetraitInvalideException {
@@ -102,6 +114,7 @@ class _RetraitSheetState extends ConsumerState<_RetraitSheet> {
   @override
   Widget build(BuildContext context) {
     final transaction = _transactionEnregistree;
+    final retraitEnAttente = _retraitEnAttente;
     final soldeAsync = ref.watch(compteSoldeProvider(widget.compte.id));
     final entrepriseAsync = ref.watch(entrepriseProfilProvider);
     final frais = entrepriseAsync.valueOrNull?.fraisRetrait ?? 0;
@@ -120,7 +133,9 @@ class _RetraitSheetState extends ConsumerState<_RetraitSheet> {
               compte: widget.compte,
               clientNom: widget.clientNom ?? '',
             )
-          : switch (_step) {
+          : retraitEnAttente != null
+              ? _RetraitEnAttenteView(resultat: retraitEnAttente)
+              : switch (_step) {
               0 => _FormulaireStep(
                   formKey: _formKey,
                   montantController: _montantController,
@@ -432,6 +447,59 @@ class _RetraitEnregistreView extends ConsumerWidget {
           label: const Text('Imprimer le reçu'),
         ),
         const SizedBox(height: 12),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Terminer'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RetraitEnAttenteView extends StatelessWidget {
+  final RetraitQueued resultat;
+
+  const _RetraitEnAttenteView({required this.resultat});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.cloud_off, color: Colors.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Retrait enregistré localement',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Pas de connexion — sera synchronisé automatiquement dès que le '
+          'réseau revient. Le montant sera revérifié par le serveur à ce '
+          'moment-là.',
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: _ConfirmRow(
+            'Montant demandé',
+            '${_confirmAmountFormat.format(resultat.montant)} HTG',
+          ),
+        ),
+        const SizedBox(height: 16),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Terminer'),

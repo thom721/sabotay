@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/presentation/auth_controller.dart';
+import '../../features/clients/presentation/client_list_controller.dart';
 import '../../features/comptes/presentation/compte_providers.dart';
+import '../../features/entreprise/presentation/entreprise_providers.dart';
 import '../../features/transactions/presentation/transaction_providers.dart';
+import '../storage/local_db_service.dart';
+import '../storage/offline_cache_service.dart';
 import 'api_client.dart';
 import 'offline_queue_service.dart';
 
@@ -14,6 +18,23 @@ import 'offline_queue_service.dart';
 final pendingCollecteCountProvider = StreamProvider<int>((ref) async* {
   yield await OfflineQueueService.instance.pendingCount();
   yield* OfflineQueueService.instance.pendingCountChanges;
+});
+
+/// Date de la synchro la plus ancienne parmi les 4 entités mises en cache
+/// (Epic 6) — la moins fraîche des quatre, pour rester honnête sur l'état
+/// réel des données affichées plutôt que de n'en montrer qu'une. `null` si
+/// aucun cycle de sync n'a encore réussi (ex. tout premier lancement,
+/// jamais eu de réseau). Invalidé par `OfflineDrainScope` à chaque cycle.
+final derniereSynchroProvider = FutureProvider<DateTime?>((ref) async {
+  final dates = await Future.wait([
+    LocalDbService.instance.derniereSynchro('clients'),
+    LocalDbService.instance.derniereSynchro('comptes'),
+    LocalDbService.instance.derniereSynchro('transactions'),
+    LocalDbService.instance.derniereSynchro('entreprise_profil'),
+  ]);
+  final connues = dates.whereType<DateTime>().toList();
+  if (connues.isEmpty) return null;
+  return connues.reduce((a, b) => a.isBefore(b) ? a : b);
 });
 
 /// Relance `OfflineQueueService.drain()` au retour au premier plan et
@@ -68,6 +89,18 @@ class _OfflineDrainScopeState extends ConsumerState<OfflineDrainScope>
       ref.invalidate(transactionsForCompteProvider);
       ref.invalidate(compteSoldeProvider);
     }
+
+    // Même déclencheurs que le drain ci-dessus (retour au premier plan,
+    // timer, retour réseau) — rafraîchit le cache offline (Epic 6) pour
+    // qu'un agent reparti sans réseau ait des données aussi fraîches que
+    // possible.
+    await OfflineCacheService.instance.syncAll(dio);
+    ref.invalidate(clientListControllerProvider);
+    ref.invalidate(comptesForClientProvider);
+    ref.invalidate(compteSoldeProvider);
+    ref.invalidate(transactionsForCompteProvider);
+    ref.invalidate(entrepriseProfilProvider);
+    ref.invalidate(derniereSynchroProvider);
   }
 
   @override

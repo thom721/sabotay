@@ -62,6 +62,14 @@ class _SetupBureauScreenState extends ConsumerState<SetupBureauScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // `setupStatutProvider` en erreur = serveur local (pas le cloud)
+    // injoignable — la cause la plus probable en pratique (service Windows
+    // pas démarré/crashé). Sans ce bandeau, l'agent ne le découvrait qu'en
+    // essayant de se connecter et en lisant un message pensé pour un autre
+    // cas d'erreur (cloud injoignable) — voir _messageErreur ci-dessus.
+    final statutAsync = ref.watch(setupStatutProvider);
+    final serveurLocalInjoignable = statutAsync.hasError;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -92,6 +100,45 @@ class _SetupBureauScreenState extends ConsumerState<SetupBureauScreen> {
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
+                        if (serveurLocalInjoignable) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Le serveur local de ce poste ne répond pas.',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Vérifiez que le service "SabotayProServer" est démarré '
+                                  '(Services Windows) avant de continuer — la connexion au '
+                                  'cloud échouera tant que ce service ne répond pas.',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () => ref.invalidate(setupStatutProvider),
+                                    child: const Text('Réessayer'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 32),
                         TextFormField(
                           controller: _codeController,

@@ -29,8 +29,13 @@ import jose                 # noqa: F401
 import cryptography         # noqa: F401 - signature/vérification Ed25519 (core/licence.py)
 import multipart            # noqa: F401
 import aiosmtplib           # noqa: F401
-import twilio                # noqa: F401
 import dotenv                 # noqa: F401
+# twilio délibérément PAS importé ici (contrairement aux autres) — exclu du
+# binaire compilé via --nofollow-import-to=twilio (build.yml) : son SDK
+# (630 fichiers, ~26 Mo) ajoutait 20-30+ min au temps de build Nuitka pour un
+# canal déjà secondaire (SMS, jamais configuré en prod depuis l'Epic 16).
+# Repli géré par core/notifications.py::send_sms si jamais reconfiguré quand
+# même sur un poste bureau (ModuleNotFoundError attrapée, pas un crash).
 
 
 def _fix_workdir() -> None:
@@ -73,6 +78,56 @@ def _write_crash_log(tb_text: str) -> str:
     return str(log_path)
 
 
+def _build_log_config() -> tuple[dict, "pathlib.Path"]:
+    """Journal permanent (pas seulement le crash log ci-dessus) — le
+    service tourne en session 0 sous Windows, sans console visible : sans
+    ce fichier, un service qui ne démarre pas ou ne répond pas ne laisse
+    strictement aucune trace pour comprendre pourquoi après coup (poste
+    bureau, cas réel rencontré : app bloquée sur l'assistant "Connecter ce
+    poste au cloud" faute de savoir si le serveur tournait vraiment).
+
+    Capture aussi bien les logs applicatifs (`uvicorn.error`) que les
+    requêtes reçues (`uvicorn.access`) — permet de distinguer "le serveur
+    n'a jamais démarré" de "le serveur tourne mais ne reçoit aucune requête"
+    (pare-feu, mauvais port) de "les requêtes arrivent mais échouent".
+
+    Construit un dict `log_config` complet (plutôt que d'appeler
+    logging.getLogger(...).addHandler(...) avant coup) car uvicorn.run()
+    applique lui-même logging.config.dictConfig() sur les loggers
+    "uvicorn"/"uvicorn.error"/"uvicorn.access" au démarrage — n'importe
+    quel handler ajouté avant serait simplement écrasé."""
+    import copy
+    from uvicorn.config import LOGGING_CONFIG
+
+    log_dir = _crash_log_dir()
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "sabotaypro-server.log"
+
+    config = copy.deepcopy(LOGGING_CONFIG)
+    config["formatters"]["file"] = {
+        "()": "logging.Formatter",
+        "fmt": "%(asctime)s %(levelname)s %(name)s: %(message)s",
+    }
+    config["handlers"]["file"] = {
+        "class": "logging.handlers.RotatingFileHandler",
+        "formatter": "file",
+        "filename": str(log_path),
+        "maxBytes": 2_000_000,
+        "backupCount": 3,
+        "encoding": "utf-8",
+    }
+    # Seuls "uvicorn.error"/"uvicorn.access" reçoivent le handler fichier —
+    # "uvicorn.error" propage déjà vers le logger parent "uvicorn" (pas de
+    # "propagate": False dessus dans LOGGING_CONFIG) : l'ajouter aussi à
+    # "uvicorn" ferait écrire chaque ligne deux fois dans le fichier.
+    for logger_name in ("uvicorn.error", "uvicorn.access"):
+        config["loggers"].setdefault(logger_name, {}).setdefault("handlers", [])
+        config["loggers"][logger_name]["handlers"].append("file")
+    config["loggers"]["sabotaypro"] = {"handlers": ["file"], "level": "INFO", "propagate": False}
+
+    return config, log_path
+
+
 def _show_crash_popup(log_path: str, summary: str) -> None:
     # MessageBoxW ne fonctionne pas depuis un service Windows (session 0
     # isolée) — tenté quand même : marche si l'exe est lancé manuellement,
@@ -94,26 +149,48 @@ def _show_crash_popup(log_path: str, summary: str) -> None:
 def main() -> None:
     _fix_workdir()
 
+    import logging
+    import logging.config
+    log_config, log_path = _build_log_config()
+    logging.config.dictConfig(log_config)
+    logger = logging.getLogger("sabotaypro")
+    logger.info("Démarrage du serveur SabotayPro (pid=%s, argv=%s)", os.getpid(), sys.argv[1:])
+
     parser = argparse.ArgumentParser(description="SabotayPro – Serveur local")
     parser.add_argument("--host", default="", help="Adresse d'écoute (défaut: settings.SERVER_HOST)")
     parser.add_argument("--port", type=int, default=0, help="Port d'écoute (défaut: settings.SERVER_PORT)")
     parser.add_argument("--reload", action="store_true", help="Rechargement auto (développement)")
     args = parser.parse_args()
 
-    from app.core.config import settings
-    from app.main import app
+    try:
+        from app.core.config import settings
+        from app.main import app
+    except BaseException:
+        logger.exception("Échec pendant l'import de la configuration/app — le serveur ne démarrera pas")
+        raise
 
     host = args.host or settings.SERVER_HOST
     port = args.port or settings.SERVER_PORT
+    logger.info(
+        "Configuration chargée — écoute prévue sur %s:%s (LOCAL_MODE=%s), journal: %s",
+        host, port, getattr(settings, "LOCAL_MODE", "?"), log_path,
+    )
 
     import uvicorn
-    uvicorn.run(
-        "app.main:app" if args.reload else app,
-        host=host,
-        port=port,
-        log_level="info",
-        reload=args.reload,
-    )
+    try:
+        uvicorn.run(
+            "app.main:app" if args.reload else app,
+            host=host,
+            port=port,
+            log_level="info",
+            # None = uvicorn n'appelle PAS dictConfig lui-même — sinon il
+            # réapplique log_config une 2e fois (déjà fait ci-dessus) et
+            # crée un second RotatingFileHandler, doublant chaque ligne.
+            log_config=None,
+            reload=args.reload,
+        )
+    finally:
+        logger.info("Arrêt du serveur SabotayPro")
 
 
 if __name__ == "__main__":

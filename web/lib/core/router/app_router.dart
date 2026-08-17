@@ -99,8 +99,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (setupInitialLoading) {
         return location == '/splash' ? null : '/splash';
       }
-      final setupStatut = setupState.valueOrNull;
-      if (setupStatut != null && !setupStatut.installationTerminee) {
+      // Une erreur (serveur local injoignable, service pas démarré, etc.)
+      // ne doit JAMAIS être traitée comme "installation terminée" — c'était
+      // le bug : `setupState.valueOrNull` vaut `null` aussi bien "pas encore
+      // chargé" qu'"erreur", et l'ancien test (`setupStatut != null && ...`)
+      // laissait passer tout droit vers le login normal dans les deux cas.
+      // Résultat en conditions réelles (poste bureau Windows) : le serveur
+      // local ne répondait pas, l'app sautait l'assistant et ouvrait le
+      // login directement — qui aurait de toute façon échoué à se connecter
+      // au même serveur injoignable. Sur toute erreur, on reste sur
+      // l'assistant, qui peut au moins l'expliquer (voir
+      // setup_bureau_screen.dart).
+      final setupTermine = setupState.valueOrNull?.installationTerminee ?? false;
+      if (!setupTermine) {
         return location == _setupBureauRoute ? null : _setupBureauRoute;
       }
 

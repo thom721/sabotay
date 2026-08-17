@@ -64,6 +64,7 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final pendingCount = ref.watch(pendingCollecteCountProvider).valueOrNull ?? 0;
+    final derniereSynchro = ref.watch(derniereSynchroProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -92,6 +93,14 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
                       'Bienvenue, ${user.nom}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _libelleSynchro(derniereSynchro),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   Expanded(
                     child: GridView.count(
@@ -137,6 +146,22 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
       ),
     );
   }
+}
+
+/// Fraîcheur du cache offline (Epic 6) — pour que l'agent sache si ce qu'il
+/// voit (clients, comptes, soldes) peut être légèrement daté, sans avoir à
+/// deviner.
+String _libelleSynchro(DateTime? derniereSynchro) {
+  if (derniereSynchro == null) return 'Données jamais synchronisées';
+  final ecoule = DateTime.now().difference(derniereSynchro);
+  if (ecoule.inMinutes < 1) return 'Données synchronisées à l\'instant';
+  if (ecoule.inMinutes < 60) {
+    return 'Données synchronisées il y a ${ecoule.inMinutes} min';
+  }
+  if (ecoule.inHours < 24) {
+    return 'Données synchronisées il y a ${ecoule.inHours} h';
+  }
+  return 'Données synchronisées il y a ${ecoule.inDays} j';
 }
 
 /// Badge indiquant des collectes saisies hors-ligne et pas encore

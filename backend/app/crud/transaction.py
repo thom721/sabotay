@@ -95,52 +95,86 @@ async def create_retrait(
     return transaction
 
 
+def calculer_champs_solde(
+    compte: CompteSabotay,
+    montant_collecte: Decimal,
+    montant_retire: Decimal,
+    jours_payes: int,
+) -> dict:
+    """Dérive solde/dette/jours manqués à partir des sommes déjà agrégées —
+    factorisé pour être partagé entre `get_solde` (un compte) et
+    `get_soldes_bulk` (plusieurs comptes d'un coup, cache offline mobile
+    Epic 6), sans dupliquer la formule."""
+    jours_dus = max(0, min((date.today() - compte.date_debut).days + 1, compte.duree_jours))
+    jours_manques = max(0, jours_dus - jours_payes)
+    dette = Decimal(jours_manques) * compte.montant_journalier
+    return {
+        "montant_collecte": montant_collecte,
+        "montant_retire": montant_retire,
+        "solde_restant": compte.montant_total_attendu - montant_collecte,
+        "solde_disponible": montant_collecte - montant_retire,
+        "dette": dette,
+        "jours_manques": jours_manques,
+    }
+
+
 async def get_solde(session: AsyncSession, *, compte: CompteSabotay) -> CompteSabotaySolde:
     """Solde d'un compte — les jours manqués ne sont plus des lignes
     stockées : ils se déduisent des jours écoulés depuis date_debut face au
     nombre de jours réellement couverts par des collectes (nb_jours), donc
     toujours à jour sans job planifié ni action manuelle de l'agent."""
-    statement = select(
-        func.coalesce(
-            func.sum(Transaction.montant).filter(
-                Transaction.type == TypeTransaction.COLLECTE
-            ),
-            0,
-        ),
-        func.coalesce(
-            func.sum(Transaction.montant).filter(
-                Transaction.type == TypeTransaction.RETRAIT
-            ),
-            0,
-        ),
-        func.coalesce(
-            func.sum(Transaction.nb_jours).filter(
-                Transaction.type == TypeTransaction.COLLECTE
-            ),
-            0,
-        ),
-    ).where(Transaction.compte_id == compte.id)
-
-    result = await session.execute(statement)
-    montant_collecte, montant_retire, jours_payes = result.one()
-    montant_collecte = Decimal(montant_collecte)
-    montant_retire = Decimal(montant_retire)
-    jours_payes = int(jours_payes)
-
-    jours_dus = max(0, min((date.today() - compte.date_debut).days + 1, compte.duree_jours))
-    jours_manques = max(0, jours_dus - jours_payes)
-    dette = Decimal(jours_manques) * compte.montant_journalier
+    montant_collecte, montant_retire, jours_payes = (await get_soldes_bulk(
+        session, compte_ids=[compte.id]
+    )).get(compte.id, (Decimal("0"), Decimal("0"), 0))
 
     return CompteSabotaySolde(
         compte_id=compte.id,
         montant_total_attendu=compte.montant_total_attendu,
-        montant_collecte=montant_collecte,
-        montant_retire=montant_retire,
-        solde_restant=compte.montant_total_attendu - montant_collecte,
-        solde_disponible=montant_collecte - montant_retire,
-        dette=dette,
-        jours_manques=jours_manques,
+        **calculer_champs_solde(compte, montant_collecte, montant_retire, jours_payes),
     )
+
+
+async def get_soldes_bulk(
+    session: AsyncSession, *, compte_ids: list[str]
+) -> dict[str, tuple[Decimal, Decimal, int]]:
+    """Sommes agrégées (montant collecté, montant retiré, jours payés) pour
+    plusieurs comptes en une seule requête groupée — évite un aller-retour
+    par compte (`get_solde` l'utilise même pour un seul compte, pour ne pas
+    dupliquer la requête). Comptes sans transaction absents du résultat,
+    l'appelant traite ça comme (0, 0, 0)."""
+    if not compte_ids:
+        return {}
+
+    statement = (
+        select(
+            Transaction.compte_id,
+            func.coalesce(
+                func.sum(Transaction.montant).filter(
+                    Transaction.type == TypeTransaction.COLLECTE
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(Transaction.montant).filter(
+                    Transaction.type == TypeTransaction.RETRAIT
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(Transaction.nb_jours).filter(
+                    Transaction.type == TypeTransaction.COLLECTE
+                ),
+                0,
+            ),
+        )
+        .where(Transaction.compte_id.in_(compte_ids))
+        .group_by(Transaction.compte_id)
+    )
+    result = await session.execute(statement)
+    return {
+        compte_id: (Decimal(montant_collecte), Decimal(montant_retire), int(jours_payes))
+        for compte_id, montant_collecte, montant_retire, jours_payes in result.all()
+    }
 
 
 async def list_for_compte(session: AsyncSession, *, compte_id: str) -> list[Transaction]:
