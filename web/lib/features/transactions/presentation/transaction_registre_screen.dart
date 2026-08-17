@@ -9,6 +9,7 @@ import '../../../core/widgets/dashboard_shell.dart';
 import '../../entreprise/data/entreprise_repository.dart';
 import '../data/transaction_repository.dart';
 import '../domain/transaction.dart';
+import 'recu_pdf.dart';
 
 final _dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
 final _montantFormat = NumberFormat.decimalPattern('fr');
@@ -202,14 +203,14 @@ class _RegistreContent extends ConsumerWidget {
   }
 }
 
-class _RegistreRow extends StatelessWidget {
+class _RegistreRow extends ConsumerWidget {
   final TransactionRegistreItem item;
   final String devise;
 
   const _RegistreRow({required this.item, required this.devise});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isRetrait = item.type == TypeTransaction.retrait;
 
     return ListTile(
@@ -227,14 +228,30 @@ class _RegistreRow extends StatelessWidget {
         '${item.collecteParNom} · '
         '${_dateTimeFormat.format(item.date)}',
       ),
-      trailing: Chip(
-        label: Text(typeTransactionLabel(item.type)),
-        backgroundColor: (isRetrait ? Colors.amber : Colors.green).withValues(alpha: 0.12),
-        labelStyle: TextStyle(
-          color: isRetrait ? Colors.amber.shade800 : Colors.green.shade800,
-          fontWeight: FontWeight.w600,
-        ),
-        side: BorderSide.none,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Chip(
+            label: Text(typeTransactionLabel(item.type)),
+            backgroundColor: (isRetrait ? Colors.amber : Colors.green).withValues(alpha: 0.12),
+            labelStyle: TextStyle(
+              color: isRetrait ? Colors.amber.shade800 : Colors.green.shade800,
+              fontWeight: FontWeight.w600,
+            ),
+            side: BorderSide.none,
+          ),
+          IconButton(
+            icon: const Icon(Icons.print_outlined, size: 20),
+            tooltip: 'Imprimer le reçu',
+            onPressed: () => imprimerRecu(
+              context,
+              ref,
+              transaction: item,
+              compteNumero: item.compteNumero,
+              clientNom: item.clientNom,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -7,7 +7,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-import '../../comptes/domain/compte_sabotay.dart';
 import '../../entreprise/data/entreprise_repository.dart';
 import '../../entreprise/domain/entreprise_profile.dart';
 import '../domain/transaction.dart';
@@ -21,7 +20,7 @@ final _amountFormat = NumberFormat.decimalPattern('fr');
 /// jours payés, un retrait affiche les frais et le montant net remis.
 Future<Uint8List> _buildRecuPdf({
   required Transaction transaction,
-  required CompteSabotay compte,
+  required String compteNumero,
   required String clientNom,
   required EntrepriseProfile entreprise,
 }) {
@@ -67,7 +66,7 @@ Future<Uint8List> _buildRecuPdf({
           ),
           pw.Divider(),
           _ligne('Client', clientNom),
-          _ligne('N° de compte', compte.numeroCompte),
+          _ligne('N° de compte', compteNumero),
           _ligne('Date', _dateFormat.format(transaction.date)),
           if (isRetrait) ...[
             _ligne('Montant demandé', '${_amountFormat.format(transaction.montant)} ${entreprise.devise}'),
@@ -117,7 +116,7 @@ Future<void> imprimerRecu(
   BuildContext context,
   WidgetRef ref, {
   required Transaction transaction,
-  required CompteSabotay compte,
+  required String compteNumero,
   required String clientNom,
   EntrepriseProfile? entreprise,
 }) async {
@@ -130,7 +129,7 @@ Future<void> imprimerRecu(
     }
     final pdfBytes = await _buildRecuPdf(
       transaction: transaction,
-      compte: compte,
+      compteNumero: compteNumero,
       clientNom: clientNom,
       entreprise: entrepriseResolue,
     );

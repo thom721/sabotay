@@ -4,12 +4,13 @@ import 'package:intl/intl.dart';
 
 import '../../../core/widgets/async_state_views.dart';
 import '../../../core/widgets/dashboard_shell.dart';
-import '../../../core/widgets/stat_card.dart';
+import '../../../core/widgets/pos_style_stat_card.dart';
 import '../../employees/domain/employee.dart';
 import '../../employees/presentation/employee_list_controller.dart';
 import '../../entreprise/data/entreprise_repository.dart';
 import '../../transactions/data/transaction_repository.dart';
 import '../../transactions/domain/transaction.dart';
+import '../../transactions/presentation/recu_pdf.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
@@ -161,32 +162,38 @@ class _RapportContent extends ConsumerWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 720 ? 3 : (constraints.maxWidth >= 420 ? 2 : 1);
+            // Mêmes seuils/ratios que le tableau de bord (AdminDashboardScreen)
+            // — sinon les cartes du rapport ont une taille/forme différente de
+            // celles du dashboard alors qu'elles utilisent le même widget.
+            final columns =
+                constraints.maxWidth >= 1100 ? 4 : (constraints.maxWidth >= 480 ? 2 : 1);
+            final ratio =
+                constraints.maxWidth >= 1100 ? 2.2 : (constraints.maxWidth >= 480 ? 2.0 : 3.2);
             return GridView.count(
               crossAxisCount: columns,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: columns == 1 ? 2.6 : 1.8,
+              childAspectRatio: ratio,
               children: [
-                StatCard(
+                PosStyleStatCard(
                   icon: Icons.payments_outlined,
                   label: 'Total collecté',
                   value: '${_montantFormat.format(rapport.totalCollecte)} $devise',
-                  accentColor: const Color(0xFF2CA01C),
+                  color: const Color(0xFF2CA01C),
                 ),
-                StatCard(
+                PosStyleStatCard(
                   icon: Icons.money_off_outlined,
                   label: 'Total retiré',
                   value: '${_montantFormat.format(rapport.totalRetrait)} $devise',
-                  accentColor: const Color(0xFFD69E2E),
+                  color: const Color(0xFFD69E2E),
                 ),
-                StatCard(
+                PosStyleStatCard(
                   icon: Icons.receipt_long_outlined,
                   label: 'Transactions',
                   value: rapport.nbTransactions.toString(),
-                  accentColor: const Color(0xFF0077C5),
+                  color: const Color(0xFF0077C5),
                 ),
               ],
             );
@@ -212,14 +219,14 @@ class _RapportContent extends ConsumerWidget {
   }
 }
 
-class _TransactionRow extends StatelessWidget {
-  final Transaction transaction;
+class _TransactionRow extends ConsumerWidget {
+  final TransactionRegistreItem transaction;
   final String devise;
 
   const _TransactionRow({required this.transaction, required this.devise});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isRetrait = transaction.type == TypeTransaction.retrait;
 
     return ListTile(
@@ -231,20 +238,36 @@ class _TransactionRow extends StatelessWidget {
           size: 18,
         ),
       ),
-      title: Text('${_montantFormat.format(transaction.montant)} $devise'),
+      title: Text('${transaction.clientNom} · ${transaction.compteNumero}'),
       subtitle: Text(
+        '${_montantFormat.format(transaction.montant)} $devise · '
         '${transaction.collecteParNom} · '
-        'Compte #${transaction.compteId.substring(0, 8)} · '
         '${_dateTimeFormat.format(transaction.date)}',
       ),
-      trailing: Chip(
-        label: Text(typeTransactionLabel(transaction.type)),
-        backgroundColor: (isRetrait ? Colors.amber : Colors.green).withValues(alpha: 0.12),
-        labelStyle: TextStyle(
-          color: isRetrait ? Colors.amber.shade800 : Colors.green.shade800,
-          fontWeight: FontWeight.w600,
-        ),
-        side: BorderSide.none,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Chip(
+            label: Text(typeTransactionLabel(transaction.type)),
+            backgroundColor: (isRetrait ? Colors.amber : Colors.green).withValues(alpha: 0.12),
+            labelStyle: TextStyle(
+              color: isRetrait ? Colors.amber.shade800 : Colors.green.shade800,
+              fontWeight: FontWeight.w600,
+            ),
+            side: BorderSide.none,
+          ),
+          IconButton(
+            icon: const Icon(Icons.print_outlined, size: 20),
+            tooltip: 'Imprimer le reçu',
+            onPressed: () => imprimerRecu(
+              context,
+              ref,
+              transaction: transaction,
+              compteNumero: transaction.compteNumero,
+              clientNom: transaction.clientNom,
+            ),
+          ),
+        ],
       ),
     );
   }

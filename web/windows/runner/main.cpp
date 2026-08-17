@@ -26,7 +26,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  // 1280x720 (valeur par défaut Flutter) laissait une zone de contenu sous
+  // le seuil de 1100px du tableau de bord (232px de barre latérale + 48px
+  // de marge déduits) : la vue bureau démarrait systématiquement en 2
+  // colonnes au lieu des 4 colonnes obtenues sur un navigateur maximisé —
+  // cartes visiblement différentes entre "web" et "bureau" alors que c'est
+  // le même code. Élargi pour garantir la même disposition par défaut.
+  Win32Window::Size size(1480, 860);
   if (!window.Create(L"sabotaypro", origin, size)) {
     return EXIT_FAILURE;
   }

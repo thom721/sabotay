@@ -37,15 +37,6 @@ class TransactionRead(SQLModel):
     cree_le: datetime
 
 
-class RapportRead(SQLModel):
-    date_debut: date
-    date_fin: date
-    total_collecte: Decimal
-    total_retrait: Decimal
-    nb_transactions: int
-    transactions: list[TransactionRead]
-
-
 class TransactionRegistreItem(TransactionRead):
     """Une ligne du registre de transactions (`GET /transactions`) — mêmes
     champs que `TransactionRead`, enrichis du nom du client et du numéro de
@@ -54,6 +45,18 @@ class TransactionRegistreItem(TransactionRead):
 
     client_nom: str
     compte_numero: str
+
+
+class RapportRead(SQLModel):
+    date_debut: date
+    date_fin: date
+    total_collecte: Decimal
+    total_retrait: Decimal
+    nb_transactions: int
+    # TransactionRegistreItem (pas TransactionRead) : chaque ligne du rapport
+    # doit être imprimable individuellement (reçu), qui a besoin du nom du
+    # client et du numéro de compte — voir crud/transaction.py::list_for_periode.
+    transactions: list[TransactionRegistreItem]
 
 
 class TransactionRegistrePage(SQLModel):

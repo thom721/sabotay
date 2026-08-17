@@ -139,7 +139,7 @@ class _TransactionCard extends ConsumerWidget {
                   context,
                   ref,
                   transaction: transaction,
-                  compte: compte,
+                  compteNumero: compte.numeroCompte,
                   clientNom: clientNom,
                   entreprise: entreprise,
                 );

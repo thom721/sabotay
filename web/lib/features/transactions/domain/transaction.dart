@@ -54,41 +54,11 @@ class Transaction {
       );
 }
 
-/// Rapport de collecte/retrait sur une période (PRD §8.7) — Admin/Manager
-/// voient tout le tenant par défaut, ou un agent précis via un filtre
-/// (`GET /transactions/rapport?agent_id=...`).
-class Rapport {
-  final DateTime dateDebut;
-  final DateTime dateFin;
-  final num totalCollecte;
-  final num totalRetrait;
-  final int nbTransactions;
-  final List<Transaction> transactions;
-
-  const Rapport({
-    required this.dateDebut,
-    required this.dateFin,
-    required this.totalCollecte,
-    required this.totalRetrait,
-    required this.nbTransactions,
-    required this.transactions,
-  });
-
-  factory Rapport.fromJson(Map<String, dynamic> json) => Rapport(
-        dateDebut: DateTime.parse(json['date_debut'] as String),
-        dateFin: DateTime.parse(json['date_fin'] as String),
-        totalCollecte: num.parse(json['total_collecte'].toString()),
-        totalRetrait: num.parse(json['total_retrait'].toString()),
-        nbTransactions: json['nb_transactions'] as int,
-        transactions: (json['transactions'] as List)
-            .map((t) => Transaction.fromJson(t as Map<String, dynamic>))
-            .toList(),
-      );
-}
-
 /// Ligne du registre de transactions (`GET /transactions`) — même modèle que
 /// [Transaction], enrichi du nom du client et du numéro de compte résolus
 /// côté serveur (recherche libre par client/compte/agent, PRD Transactions).
+/// Aussi utilisé par [Rapport] : chaque ligne doit rester imprimable
+/// (reçu) individuellement, ce qui a besoin de ces deux champs.
 class TransactionRegistreItem extends Transaction {
   final String clientNom;
   final String compteNumero;
@@ -139,5 +109,37 @@ class RegistrePage {
             .map((t) => TransactionRegistreItem.fromJson(t as Map<String, dynamic>))
             .toList(),
         total: json['total'] as int,
+      );
+}
+
+/// Rapport de collecte/retrait sur une période (PRD §8.7) — Admin/Manager
+/// voient tout le tenant par défaut, ou un agent précis via un filtre
+/// (`GET /transactions/rapport?agent_id=...`).
+class Rapport {
+  final DateTime dateDebut;
+  final DateTime dateFin;
+  final num totalCollecte;
+  final num totalRetrait;
+  final int nbTransactions;
+  final List<TransactionRegistreItem> transactions;
+
+  const Rapport({
+    required this.dateDebut,
+    required this.dateFin,
+    required this.totalCollecte,
+    required this.totalRetrait,
+    required this.nbTransactions,
+    required this.transactions,
+  });
+
+  factory Rapport.fromJson(Map<String, dynamic> json) => Rapport(
+        dateDebut: DateTime.parse(json['date_debut'] as String),
+        dateFin: DateTime.parse(json['date_fin'] as String),
+        totalCollecte: num.parse(json['total_collecte'].toString()),
+        totalRetrait: num.parse(json['total_retrait'].toString()),
+        nbTransactions: json['nb_transactions'] as int,
+        transactions: (json['transactions'] as List)
+            .map((t) => TransactionRegistreItem.fromJson(t as Map<String, dynamic>))
+            .toList(),
       );
 }

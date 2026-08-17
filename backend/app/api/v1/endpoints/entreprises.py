@@ -69,23 +69,43 @@ async def register_entreprise(
 async def lire_code_installation(
     session: Annotated[AsyncSession, Depends(get_session)],
     entreprise_id: TenantId,
-) -> CodeInstallation:
-    """Code d'installation courant (généré à la demande s'il n'existe pas
-    encore) pour lier un poste local au cloud sans email/mot de passe —
-    saisi dans l'assistant d'installation bureau (Epic 5). Une fois utilisé,
-    reste affiché tel quel (`utilise=True`) ; régénérer via POST invalide
-    l'ancien."""
+) -> CodeInstallation | CodeInstallationRead:
+    """Code d'installation courant pour lier un poste local au cloud sans
+    email/mot de passe — saisi dans l'assistant d'installation bureau
+    (Epic 5).
+
+    Générait auparavant un nouveau code à chaque appel dès qu'aucun code
+    inutilisé n'existait — y compris après une installation déjà réussie,
+    ce qui gardait perpétuellement un code valide affiché/copiable dans
+    Admin → Entreprise, alors que le modèle "un seul poste local par
+    entreprise" (Epic 2) suppose une installation terminée = définitive.
+    Désormais : un code inutilisé existant est réaffiché tel quel ; sinon,
+    si un code a déjà été consommé, l'installation est considérée terminée
+    (`code=None`, le frontend affiche "Installation terminée" plutôt que le
+    code mort) ; la génération auto n'a lieu que si aucun code n'a jamais
+    existé pour cette entreprise (tout premier accès à cet écran). Un
+    Admin qui doit réinstaller (nouveau poste) utilise explicitement
+    POST /entreprises/code-installation (bouton "Régénérer")."""
     statement = select(CodeInstallation).where(
         CodeInstallation.entreprise_id == entreprise_id, CodeInstallation.utilise == False  # noqa: E712
     )
     code = (await session.execute(statement)).scalars().first()
-    if code is None:
-        code = CodeInstallation(
-            entreprise_id=entreprise_id, code=generer_code_installation()
-        )
-        session.add(code)
-        await session.commit()
-        await session.refresh(code)
+    if code is not None:
+        return code
+
+    statement_utilise = (
+        select(CodeInstallation)
+        .where(CodeInstallation.entreprise_id == entreprise_id, CodeInstallation.utilise == True)  # noqa: E712
+        .order_by(CodeInstallation.utilise_le.desc())
+    )
+    deja_utilise = (await session.execute(statement_utilise)).scalars().first()
+    if deja_utilise is not None:
+        return CodeInstallationRead(code=None, utilise=True)
+
+    code = CodeInstallation(entreprise_id=entreprise_id, code=generer_code_installation())
+    session.add(code)
+    await session.commit()
+    await session.refresh(code)
     return code
 
 

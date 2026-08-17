@@ -241,10 +241,13 @@ async def list_for_periode(
     date_debut: date,
     date_fin: date,
     collecte_par_id: str | None = None,
-) -> list[Transaction]:
+) -> list[tuple[Transaction, str, str, str]]:
     """Transactions d'une période pour le rapport de collecte (§8.7 PRD) —
     filtré sur un agent précis quand fourni (un Agent ne voit que les
-    siennes), sinon tout le tenant (Admin/Manager)."""
+    siennes), sinon tout le tenant (Admin/Manager). Même jointure
+    Client/CompteSabotay que `list_registre` (prénom, nom, numéro de compte)
+    pour que chaque ligne du rapport soit imprimable individuellement (reçu)
+    sans round-trip supplémentaire côté client."""
     conditions = [
         Transaction.entreprise_id == entreprise_id,
         Transaction.date >= date_debut,
@@ -253,9 +256,15 @@ async def list_for_periode(
     if collecte_par_id is not None:
         conditions.append(Transaction.collecte_par_id == collecte_par_id)
 
-    statement = select(Transaction).where(*conditions).order_by(Transaction.date.desc())
+    statement = (
+        select(Transaction, Client.prenom, Client.nom, CompteSabotay.numero_compte)
+        .join(CompteSabotay, CompteSabotay.id == Transaction.compte_id)
+        .join(Client, Client.id == CompteSabotay.client_id)
+        .where(*conditions)
+        .order_by(Transaction.date.desc())
+    )
     result = await session.execute(statement)
-    return list(result.scalars().all())
+    return list(result.all())
 
 
 async def list_registre(

@@ -189,7 +189,7 @@ async def read_rapport_transactions(
     collecte_par_id = (
         current_user.id if current_user.role == RoleUtilisateur.AGENT else agent_id
     )
-    transactions = await crud_transaction.list_for_periode(
+    rows = await crud_transaction.list_for_periode(
         session,
         entreprise_id=entreprise_id,
         date_debut=date_debut,
@@ -198,13 +198,21 @@ async def read_rapport_transactions(
     )
 
     total_collecte = sum(
-        (t.montant for t in transactions if t.type == TypeTransaction.COLLECTE),
+        (t.montant for t, *_ in rows if t.type == TypeTransaction.COLLECTE),
         Decimal("0"),
     )
     total_retrait = sum(
-        (t.montant for t in transactions if t.type == TypeTransaction.RETRAIT),
+        (t.montant for t, *_ in rows if t.type == TypeTransaction.RETRAIT),
         Decimal("0"),
     )
+    transactions = [
+        TransactionRegistreItem(
+            **transaction.model_dump(),
+            client_nom=f"{prenom} {nom}".strip(),
+            compte_numero=compte_numero,
+        )
+        for transaction, prenom, nom, compte_numero in rows
+    ]
 
     return RapportRead(
         date_debut=date_debut,
